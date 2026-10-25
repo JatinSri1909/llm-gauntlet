@@ -38,6 +38,9 @@ All features are Planned.
 | Kimi adapter | Planned |
 | DeepSeek adapter | Planned |
 | z.ai adapter | Planned |
+| Interactive mode with a prompt and slash commands | Planned |
+| Full-screen interface built with Ink | Planned |
+| Streaming answers | Planned |
 | `gauntlet doctor` self check | Planned |
 
 ## Platform support
@@ -90,7 +93,15 @@ All steps use PowerShell. This section describes the planned setup.
    gauntlet login claude
    ```
 
-4. Ask a question.
+4. Start interactive mode.
+
+   ```powershell
+   gauntlet
+   ```
+
+   A prompt opens. Type your task and press Enter. Type `/help` to see the slash commands. Type `/exit` to leave.
+
+5. To ask one question without interactive mode, use `ask`. This is useful in scripts.
 
    ```powershell
    gauntlet ask "Explain the difference between a process and a thread."
@@ -114,14 +125,39 @@ All commands are Planned.
 
 | Command | Purpose |
 | --- | --- |
+| `gauntlet` | Start interactive mode. |
 | `gauntlet login <provider>` | Open a visible browser. Sign in. Save the encrypted session state. |
 | `gauntlet logout <provider>` | Delete the saved session state of one account. |
 | `gauntlet accounts` | List the accounts and their status. |
-| `gauntlet ask "<text>"` | Send one request. Print the answer. |
-| `gauntlet chat` | Start an interactive chat. |
+| `gauntlet ask "<text>"` | Send one request. Print the answer. Use it in scripts. |
+| `gauntlet chat` | Start interactive mode. Same as `gauntlet`. |
 | `gauntlet usage` | Show the local usage records. |
 | `gauntlet config` | Show or change the settings. |
 | `gauntlet doctor` | Check Node.js, the browser, the data folder, and the key store. |
+
+### Interactive mode
+
+Run `gauntlet` with no arguments. A prompt opens. You type a task, and the application sends it through the decision layer. You do not type `gauntlet ask` each time.
+
+After each answer, interactive mode prints one status line. The line shows the class, the account label, and the model.
+
+Input that starts with `/` is a slash command. All other input is a task. All slash commands are Planned.
+
+| Slash command | Purpose |
+| --- | --- |
+| `/help` | Show the slash commands. |
+| `/accounts` | List the accounts and their status. |
+| `/login <provider>` | Sign in to an account. A visible browser opens. |
+| `/logout <provider>` | Delete the saved session state of one account. |
+| `/usage` | Show the local usage records. |
+| `/config` | Show or change the settings. |
+| `/doctor` | Run the self checks. |
+| `/new` | Start a new conversation. |
+| `/resume` | Continue an earlier conversation from the local store. |
+| `/verbose` | Show or hide the detail of the routing choice. |
+| `/exit` | Leave interactive mode. |
+
+Interactive mode shows a spinner while a request runs. It prints the whole answer when the answer arrives. Streaming answers and a full-screen interface are Planned.
 
 ## How it works
 

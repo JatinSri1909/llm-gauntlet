@@ -21,6 +21,8 @@ Each term has one meaning in all files.
 | Data folder | The folder `%LOCALAPPDATA%\llm-gauntlet`. |
 | Cooling down | The state of an account that reached a limit. The application does not use the account until the reset time. |
 | Classifier API | A free API (Groq or OpenRouter) that classifies a task. |
+| Interactive mode | The prompt that opens when the user runs `gauntlet` with no arguments. The user types a task or a slash command. |
+| Slash command | An input in interactive mode that starts with `/`. Example: `/usage`. |
 
 ## Design rules
 
@@ -64,6 +66,7 @@ The diagram shows the components and their dependencies.
 ```mermaid
 flowchart TB
     cli["CLI: src/cli"]
+    interactive["Interactive mode: src/interactive"]
     app["Request runner: src/app"]
     decision["Decision layer: src/decision"]
     context["Context: src/context"]
@@ -78,6 +81,11 @@ flowchart TB
 
     cli --> app
     cli --> accounts
+    cli --> interactive
+    interactive --> app
+    interactive --> accounts
+    interactive --> usage
+    interactive --> context
     app --> decision
     app --> context
     app --> providers
@@ -101,7 +109,8 @@ flowchart TB
 
 | Component | Folder | Job |
 | --- | --- | --- |
-| CLI | `src/cli` | Parse commands. Print results. Show the risk notice. |
+| CLI | `src/cli` | Parse commands. Start interactive mode when there are no arguments. Show the risk notice. |
+| Interactive mode | `src/interactive` | Read the prompt. Run slash commands. Show a spinner and a status line. Print answers. |
 | Request runner | `src/app` | Run one request from the start to the end. |
 | Decision layer | `src/decision` | Classify the task. Pick the account and the model. Check the answer. Escalate. |
 | Context | `src/context` | Save messages and summaries. Select the minimum context. |
@@ -146,7 +155,7 @@ flowchart TB
 
 ## Data flow: login
 
-The user runs `gauntlet login <provider>`.
+The user runs `gauntlet login <provider>`. In interactive mode, the user types `/login <provider>`. Both ways use the same login flow.
 
 ```mermaid
 sequenceDiagram
@@ -178,7 +187,7 @@ If the provider shows a CAPTCHA, the adapter signals `CaptchaRequired`. The flow
 
 ## Data flow: ask
 
-The user runs `gauntlet ask "<text>"`.
+The user runs `gauntlet ask "<text>"`. Interactive mode sends each task through the same flow.
 
 ```mermaid
 sequenceDiagram
@@ -218,6 +227,49 @@ sequenceDiagram
 ```
 
 The runner saves the request, the answer, and the usage records in the local store.
+
+## Data flow: interactive mode
+
+The user runs `gauntlet` with no arguments.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Shell as Interactive mode
+    participant Runner as Request runner
+    participant Use as Usage tracker
+    participant Flow as Login flow
+
+    User->>Shell: gauntlet
+    Shell->>User: Show prompt
+    User->>Shell: Task text
+    Shell->>User: Show spinner
+    Shell->>Runner: Run request in the current conversation
+    Runner-->>Shell: Answer, class, account label, model
+    Shell->>User: Print answer and status line
+    User->>Shell: /usage
+    Shell->>Use: Read usage records
+    Use-->>Shell: Records
+    Shell->>User: Print records
+    User->>Shell: /login claude
+    Shell->>Flow: Start login flow
+    Flow-->>Shell: Account added
+    Shell->>User: Show prompt
+    User->>Shell: /exit
+    Shell->>User: Close
+```
+
+Rules for interactive mode:
+
+- Input that starts with `/` is a slash command. All other input is a task.
+- An unknown slash command gives an error. It sends nothing to a provider.
+- Interactive mode keeps one conversation for each run. `/new` starts a new conversation. `/resume` loads an earlier conversation from the local store.
+- Interactive mode and `gauntlet ask` use the same request runner. They use the same classifier, router, and quality check.
+- Interactive mode shows a spinner. It prints the whole answer when the answer arrives. Streaming answers are Planned.
+- Interactive mode prints one status line after each answer. The line shows the class, the account label, and the model. `/verbose` shows more detail about the routing choice.
+- Interactive mode turns off colors and the spinner when the output is not a terminal or when `NO_COLOR` is set.
+- If a CAPTCHA stops a request, interactive mode prints the message that asks the user to solve it in a visible window. Then it shows the prompt again.
+- Interactive mode uses the Node.js built-in `readline` module. It adds no package.
 
 ## Decision layer
 
@@ -400,6 +452,7 @@ llm-gauntlet/
     setup.cmd
     src/
         cli/            Commands
+        interactive/    Prompt, slash commands, status line
         app/            Request runner
         decision/       Classifier, router, quality check, escalation
         context/        Context store and selector
@@ -424,10 +477,13 @@ llm-gauntlet/
 | --- | --- |
 | A provider | Write an adapter. Register it. Read `docs/PROVIDERS.md`. |
 | A platform | Add a folder in `src/platform/`. Add a factory case. Read `docs/PORTING.md`. |
+| A slash command | Add a handler in `src/interactive/commands/`. Add a test. |
 | A class | Change the classifier, the model map, and the tests. This needs approval. |
 
 ## Planned changes
 
 - A background process that keeps the browser open between requests. Status: Planned.
 - Embeddings for context search. Status: Planned.
+- A full-screen interface built with Ink. Status: Planned.
+- Streaming answers. Status: Planned.
 - Linux and macOS support. Status: Planned.

@@ -14,6 +14,7 @@ Build an open source terminal application for Windows. The application connects 
 
 - Windows 10 and Windows 11.
 - PowerShell 7 and Windows PowerShell 5.1.
+- Interactive mode. The user runs `gauntlet` and types. Slash commands control the application.
 - The commands `login`, `logout`, `accounts`, `ask`, `chat`, `usage`, `config`, and `doctor`.
 - The mock adapter and the Claude adapter.
 - Encrypted session state. The encryption key is protected by Windows DPAPI.
@@ -29,6 +30,8 @@ Build an open source terminal application for Windows. The application connects 
 - The ChatGPT, Kimi, DeepSeek, and z.ai adapters. Status: Planned. Each adapter is one later part.
 - A background process that keeps the browser open. Status: Planned.
 - Embeddings for context search. Status: Planned.
+- A full-screen interface built with Ink. Status: Planned. Read part L8.
+- Streaming answers. Status: Planned. Read part L9.
 - Any method to bypass a CAPTCHA, a rate limit, or a usage limit. This is never in scope.
 
 ## Rules for every part
@@ -66,6 +69,7 @@ Rules for dependencies:
 
 - A package that needs a native build is not allowed. `better-sqlite3` is allowed only with a prebuilt Windows binary. If no prebuilt binary exists for the Node.js version, stop and ask.
 - The code calls the free classifier API with the Node.js built-in `fetch`. It needs no package.
+- Interactive mode uses the Node.js built-in `readline` module and ANSI codes. It needs no package.
 
 ## Open items
 
@@ -81,7 +85,7 @@ Rules for dependencies:
 | M3 Providers and login | P14 to P20 | An adapter interface, a mock adapter, the login flow, and the Claude adapter. |
 | M4 Context and usage | P21 to P23 | Context storage, context selection, and usage tracking. |
 | M5 Decision layer | P24 to P27 | Classification, routing, quality check, and escalation. |
-| M6 Commands and release | P28 to P32 | All commands work. The docs match the code. |
+| M6 Commands and release | P28 to P33 | All commands work. Interactive mode works. The docs match the code. |
 
 Version 1 is done when all of these are true:
 
@@ -119,9 +123,9 @@ Each part has a name, a goal, the files it touches, a test, and a "done when" ch
 
 #### P04 CLI shell
 
-- **Goal:** Add the `gauntlet` command with a help text and one stub for each command.
+- **Goal:** Add the `gauntlet` command with a help text and one stub for each command. Running `gauntlet` with no arguments prints a "Planned" message until part P29.
 - **Files:** `package.json`, `src/cli/index.ts`, `src/cli/commands/*.ts`, `tests/cli.test.ts`.
-- **Test:** The test runs the CLI with `--help`. It checks that all eight commands are listed. A stub prints a "Planned" message and exits with code 0.
+- **Test:** The test runs the CLI with `--help`. It checks that all eight commands are listed. A stub prints a "Planned" message and exits with code 0. The test checks that no arguments call the interactive mode stub.
 - **Done when:** `npx tsx src/cli/index.ts --help` lists all commands and `npm test` passes.
 
 #### P05 Logger and errors
@@ -302,28 +306,35 @@ Each part has a name, a goal, the files it touches, a test, and a "done when" ch
 - **Test:** The test runs `ask` with the mock adapter. It checks the class, the account choice, the answer, and the saved records.
 - **Done when:** `npm test` passes.
 
-#### P29 The `chat` command
+#### P29 Interactive mode shell
 
-- **Goal:** Add the interactive chat loop. Use the same request path as `ask`.
-- **Files:** `src/cli/commands/chat.ts`, `tests/chat.test.ts`.
-- **Test:** The test sends scripted input. It checks that the second turn uses the saved context. It checks the exit command.
+- **Goal:** Open a prompt when the user runs `gauntlet` with no arguments or runs `gauntlet chat`. Send each input through the same request runner as `ask`. Show a spinner while a request runs. Keep one conversation for each run.
+- **Files:** `src/interactive/shell.ts`, `src/interactive/render.ts`, `src/cli/commands/chat.ts`, `src/cli/index.ts`, `tests/interactive-shell.test.ts`.
+- **Test:** The test sends scripted input with the mock adapter. It checks that the second turn uses the saved context. It checks that Ctrl+C and Ctrl+D leave the prompt. It checks that colors and the spinner are off when the output is not a terminal or when `NO_COLOR` is set. It checks that a CAPTCHA signal prints the message and returns to the prompt.
+- **Done when:** `npm test` passes. `gauntlet` starts the prompt with the mock adapter.
+
+#### P30 Slash commands and status line
+
+- **Goal:** Treat input that starts with `/` as a slash command. Add `/help`, `/accounts`, `/login`, `/logout`, `/usage`, `/new`, `/resume`, `/verbose`, and `/exit`. Print one status line after each answer. The status line shows the class, the account label, and the model. The slash commands `/config` and `/doctor` come in parts P31 and P32.
+- **Files:** `src/interactive/commands/*.ts`, `src/interactive/status-line.ts`, `tests/slash-commands.test.ts`.
+- **Test:** The test runs each slash command. It checks that an unknown slash command gives a clear error and sends nothing to a provider. It checks that `/new` starts a new conversation. It checks that `/resume` lists conversations from the local store and loads one. It checks that `/login` runs the login flow and returns to the prompt. It checks the content of the status line.
 - **Done when:** `npm test` passes.
 
-#### P30 The `config` command
+#### P31 The `config` command
 
-- **Goal:** Show and change the settings from the terminal.
-- **Files:** `src/cli/commands/config.ts`, `tests/config-command.test.ts`.
-- **Test:** The test reads a value, sets a value, and sets a bad value. It checks the error for the bad value.
+- **Goal:** Show and change the settings from the terminal. Add the `/config` slash command.
+- **Files:** `src/cli/commands/config.ts`, `src/interactive/commands/config.ts`, `tests/config-command.test.ts`.
+- **Test:** The test reads a value, sets a value, and sets a bad value. It checks the error for the bad value. It checks that `/config` gives the same results.
 - **Done when:** `npm test` passes.
 
-#### P31 The `doctor` command
+#### P32 The `doctor` command
 
-- **Goal:** Check Node.js, the browser, the data folder, the key store, and the database.
-- **Files:** `src/cli/commands/doctor.ts`, `src/doctor/checks.ts`, `tests/doctor.test.ts`.
-- **Test:** The test runs each check with a fake environment. It checks a pass and a fail for each check.
+- **Goal:** Check Node.js, the browser, the data folder, the key store, and the database. Add the `/doctor` slash command.
+- **Files:** `src/cli/commands/doctor.ts`, `src/doctor/checks.ts`, `src/interactive/commands/doctor.ts`, `tests/doctor.test.ts`.
+- **Test:** The test runs each check with a fake environment. It checks a pass and a fail for each check. It checks that `/doctor` runs the same checks.
 - **Done when:** `npm test` passes. `gauntlet doctor` runs on Windows.
 
-#### P32 Documentation sync
+#### P33 Documentation sync
 
 - **Goal:** Change the status marks in the docs from "Planned" to "Done" for each finished feature. Check all PowerShell commands in the docs.
 - **Files:** `README.md`, `docs/*.md`, `AGENTS.md`.
@@ -343,3 +354,5 @@ All of these are Planned. Each one needs approval before work starts.
 | L5 | Background process | Keep the browser open between requests. |
 | L6 | Linux port | Add the Linux `KeyStore` and paths. Read `docs/PORTING.md`. |
 | L7 | macOS port | Add the macOS `KeyStore` and paths. Read `docs/PORTING.md`. |
+| L8 | Ink interface | Replace the plain prompt with a full-screen interface built with Ink. This adds the packages `ink` and `react`. |
+| L9 | Streaming answers | Print the answer while the provider writes it. Each adapter needs extra code. |
