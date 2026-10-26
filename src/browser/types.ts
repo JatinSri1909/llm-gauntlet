@@ -12,8 +12,10 @@ export interface BrowserPage {
   bodyText(): Promise<string>;
   /** Type text into an element and press a key. */
   fill(selector: string, text: string): Promise<void>;
-  /** Press a key. */
+  /** Press a key on an element. */
   press(selector: string, key: string): Promise<void>;
+  /** Click an element. */
+  click(selector: string): Promise<void>;
   /** Wait a short time. An adapter uses this only after a state change. */
   waitForTimeout(milliseconds: number): Promise<void>;
 }

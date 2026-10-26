@@ -1,0 +1,26 @@
+<!doctype html>
+<!-- Reduced snapshot of a Claude chat with one answer. It holds no personal data. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Claude</title>
+  </head>
+  <body>
+    <main>
+      <div data-testid="user-message"><p>Reply with exactly: ready</p></div>
+      <div data-testid="assistant-message">
+        <h3 class="sr-only">Claude responded: ready</h3>
+        <div class="prose"><p>ready</p></div>
+      </div>
+      <form action="/answer" method="get">
+        <div
+          contenteditable="true"
+          role="textbox"
+          data-testid="chat-input"
+          aria-label="Write your prompt to Claude"
+        ></div>
+        <button type="submit" data-testid="chat-input-send" aria-label="Send message">Send</button>
+      </form>
+    </main>
+  </body>
+</html>

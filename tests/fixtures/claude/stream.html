@@ -1,0 +1,70 @@
+<!doctype html>
+<!-- Reduced snapshot of a signed-in Claude chat. A small script shows the user message
+     and streams the answer in parts, like the real page. It holds no personal data. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Claude</title>
+  </head>
+  <body>
+    <main>
+      <div id="thread"></div>
+      <div>
+        <div
+          contenteditable="true"
+          role="textbox"
+          data-testid="chat-input"
+          aria-label="Write your prompt to Claude"
+        ></div>
+        <button type="button" data-testid="chat-input-send" aria-label="Send message">Send</button>
+      </div>
+    </main>
+    <script>
+      const composer = document.querySelector('[data-testid="chat-input"]');
+      const thread = document.getElementById('thread');
+
+      document.querySelector('[data-testid="chat-input-send"]').addEventListener('click', () => {
+        const typed = composer.textContent;
+        composer.textContent = '';
+
+        const user = document.createElement('div');
+        user.setAttribute('data-testid', 'user-message');
+        user.textContent = typed;
+        thread.appendChild(user);
+
+        const parts = ['You said: ', typed, '. Done.'];
+        let shown = '';
+        let index = 0;
+
+        // The first part comes late. The last part comes after a long pause, while
+        // the page still says that it streams. The adapter must wait for the flag.
+        const delays = [200, 200, 800];
+
+        const showNext = () => {
+          if (index === 0) {
+            const row = document.createElement('div');
+            row.setAttribute('data-testid', 'assistant-message');
+            row.setAttribute('data-is-streaming', 'true');
+            row.innerHTML = '<div class="prose"><p></p></div>';
+            thread.appendChild(row);
+          }
+
+          shown += parts[index];
+          thread.querySelector('.prose p').textContent = shown;
+          index += 1;
+
+          if (index < parts.length) {
+            setTimeout(showNext, delays[index]);
+            return;
+          }
+
+          thread
+            .querySelector('[data-testid="assistant-message"]')
+            .setAttribute('data-is-streaming', 'false');
+        };
+
+        setTimeout(showNext, delays[0]);
+      });
+    </script>
+  </body>
+</html>

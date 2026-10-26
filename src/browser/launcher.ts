@@ -145,6 +145,11 @@ export class PlaywrightBrowserPage implements BrowserPage {
     await this.page.locator(selector).press(key);
   }
 
+  /** Click an element. */
+  async click(selector: string): Promise<void> {
+    await this.page.locator(selector).first().click();
+  }
+
   /** Wait a short time. */
   async waitForTimeout(milliseconds: number): Promise<void> {
     await this.page.waitForTimeout(milliseconds);

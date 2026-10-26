@@ -84,6 +84,7 @@ function makePage(body: string): ProviderPage {
     bodyText: async () => body,
     fill: async () => undefined,
     press: async () => undefined,
+    click: async () => undefined,
     waitForTimeout: async () => undefined,
   };
 }

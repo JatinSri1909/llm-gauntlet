@@ -1,6 +1,7 @@
 import { AccountManager } from '../accounts/account-manager.js';
 import { createPlatform } from '../platform/index.js';
 import { AdapterRegistry } from '../providers/registry.js';
+import { ClaudeAdapter } from '../providers/claude/claude-adapter.js';
 import { createMockAdapter } from '../providers/mock/mock-adapter.js';
 import { SessionVault } from '../security/session-vault.js';
 import { SqliteDatabase } from '../store/database.js';
@@ -38,6 +39,7 @@ export async function createServices(): Promise<Services> {
 
   const registry = new AdapterRegistry();
   registry.register(createMockAdapter());
+  registry.register(new ClaudeAdapter());
 
   return {
     database,

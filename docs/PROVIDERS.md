@@ -2,7 +2,7 @@
 
 This file explains how to write a provider adapter for llm-gauntlet.
 
-Status: Part P14 is done. The adapter interface is in `src/providers/types.ts` and the registry is in `src/providers/registry.ts`. The mock adapter is done in part P15. The Claude adapter is still Planned. Read `docs/PLAN.md` for the build order.
+Status: Part P14 is done. The adapter interface is in `src/providers/types.ts` and the registry is in `src/providers/registry.ts`. The mock adapter is done in part P15. The Claude adapter is built in part P20. The manual check with a real account is Pending. Read `docs/PLAN.md` for the build order.
 
 ## Terms
 
@@ -24,7 +24,7 @@ Read `docs/ARCHITECTURE.md` for the other terms.
 | Provider | Adapter | Status |
 | --- | --- | --- |
 | Mock | Mock adapter | Done (part P15) |
-| Claude | Claude adapter | Planned for version 1 (part P20) |
+| Claude | Claude adapter | Built in part P20. The manual check with a real account is Pending. |
 | ChatGPT | ChatGPT adapter | Planned (part L1) |
 | Kimi | Kimi adapter | Planned (part L2) |
 | DeepSeek | DeepSeek adapter | Planned (part L3) |
@@ -74,7 +74,7 @@ The result of `send` is a `ProviderResult`. It has one of these shapes.
 Rules for the contract:
 
 - An adapter receives a browser page. It never starts a browser. The browser launcher starts the browser.
-- The page is a `ProviderPage`. It has `goto`, `waitForSelector`, `textOf`, `isVisible`, `bodyText`, `fill`, `press`, and `waitForTimeout`.
+- The page is a `ProviderPage`. It has `goto`, `waitForSelector`, `textOf`, `isVisible`, `bodyText`, `fill`, `press`, `click`, and `waitForTimeout`.
 - An adapter returns a signal as a typed result. It never throws an error for a limit message, a CAPTCHA, or a signed-out page.
 - An adapter throws a typed error only for a real failure. Examples: the page layout changed, or the page timed out.
 - An adapter never reads or writes a file. The session vault does that.
@@ -105,6 +105,7 @@ The registry is `AdapterRegistry` in `src/providers/registry.ts`.
 - **Never add stealth code.** Do not hide the automation. Do not fake a user agent. Do not add random mouse moves to look like a human.
 - **Use headless mode.** The adapter works in headless mode. Only the login flow uses the visible browser.
 - **Send one request at a time.** The runner controls the pace. The adapter does not send two requests to one account at the same time.
+- **Do not switch models in the page unless the adapter says so.** The Claude adapter uses the default model of the account. Model switching in the page is Planned.
 - **Open a new chat for each request.** Do not continue a provider thread. Read decision D15.
 - **Send the text that the runner gives.** Do not add text. Do not remove text.
 - **Never log a secret.** Do not log cookies, tokens, or the page content. Use the logger of the application. It hides secrets.

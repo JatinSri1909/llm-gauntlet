@@ -33,7 +33,7 @@ All features are Planned.
 | Local store of conversations, summaries, and usage records | Planned |
 | Minimum context selection for each request | Planned |
 | Answer quality check and one-time escalation | Planned |
-| Claude adapter | Planned |
+| Claude adapter | Built in part P20. The manual check with a real account is Pending. |
 | ChatGPT adapter | Planned |
 | Kimi adapter | Planned |
 | DeepSeek adapter | Planned |
