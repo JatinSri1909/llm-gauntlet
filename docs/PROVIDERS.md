@@ -2,7 +2,7 @@
 
 This file explains how to write a provider adapter for llm-gauntlet.
 
-Status: Planned. The code does not exist yet. This file describes the design for version 1. Part P14 updates this file when the adapter interface is built. Read `docs/PLAN.md` for the build order.
+Status: Part P14 is done. The adapter interface is in `src/providers/types.ts` and the registry is in `src/providers/registry.ts`. The Claude adapter and the mock adapter are still Planned. Read `docs/PLAN.md` for the build order.
 
 ## Terms
 
@@ -52,7 +52,7 @@ flowchart LR
 
 ## The adapter contract
 
-Every adapter follows the same contract. Part P14 writes the TypeScript interface. The table shows the planned operations.
+The interface is `ProviderAdapter` in `src/providers/types.ts`. The table shows the operations.
 
 | Operation | Input | Result |
 | --- | --- | --- |
@@ -62,13 +62,34 @@ Every adapter follows the same contract. Part P14 writes the TypeScript interfac
 | `isSignedIn` | A browser page | `true` if the page shows a signed-in account. Otherwise `false`. |
 | `send` | A browser page, a model, and the request text | The answer text, or one signal. |
 
+The result of `send` is a `ProviderResult`. It has one of these shapes.
+
+| Kind | Meaning |
+| --- | --- |
+| `answer` | The answer text. The field is `text`. |
+| `limitReached` | The page shows a limit message. The field `resetAt` holds the reset time when the page states it. |
+| `captchaRequired` | The page shows a CAPTCHA. |
+| `sessionExpired` | The page shows a sign-in screen. |
+
 Rules for the contract:
 
 - An adapter receives a browser page. It never starts a browser. The browser launcher starts the browser.
+- The page is a `ProviderPage`. It has `goto`, `waitForSelector`, `textOf`, `isVisible`, `bodyText`, `fill`, `press`, and `waitForTimeout`.
 - An adapter returns a signal as a typed result. It never throws an error for a limit message, a CAPTCHA, or a signed-out page.
 - An adapter throws a typed error only for a real failure. Examples: the page layout changed, or the page timed out.
 - An adapter never reads or writes a file. The session vault does that.
 - An adapter never calls the network by itself. It acts only through the browser page.
+
+## The registry
+
+The registry is `AdapterRegistry` in `src/providers/registry.ts`.
+
+| Method | Job |
+| --- | --- |
+| `register` | Add an adapter. It replaces an adapter with the same name. |
+| `get` | Return the adapter with the given name. It ignores the case. An unknown name throws a `ProviderError`. |
+| `has` | Return true when an adapter with the given name exists. |
+| `names` | Return the names of all adapters in alphabetical order. |
 
 ## Signals
 
