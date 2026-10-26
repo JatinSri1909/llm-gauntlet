@@ -2,7 +2,7 @@
 
 This file explains how to write a provider adapter for llm-gauntlet.
 
-Status: Part P14 is done. The adapter interface is in `src/providers/types.ts` and the registry is in `src/providers/registry.ts`. The Claude adapter and the mock adapter are still Planned. Read `docs/PLAN.md` for the build order.
+Status: Part P14 is done. The adapter interface is in `src/providers/types.ts` and the registry is in `src/providers/registry.ts`. The mock adapter is done in part P15. The Claude adapter is still Planned. Read `docs/PLAN.md` for the build order.
 
 ## Terms
 
@@ -23,7 +23,7 @@ Read `docs/ARCHITECTURE.md` for the other terms.
 
 | Provider | Adapter | Status |
 | --- | --- | --- |
-| None | Mock adapter | Planned for version 1 (part P15) |
+| Mock | Mock adapter | Done (part P15) |
 | Claude | Claude adapter | Planned for version 1 (part P20) |
 | ChatGPT | ChatGPT adapter | Planned (part L1) |
 | Kimi | Kimi adapter | Planned (part L2) |
@@ -176,7 +176,16 @@ Never commit a snapshot that you did not sanitise. A reviewer must reject it.
 
 ## The mock adapter
 
-The mock adapter is part P15. It returns scripted results. A script can return an answer, a limit message, a CAPTCHA signal, a signed-out signal, or a failure. Tests for the router, the usage tracker, the quality check, and interactive mode use it.
+The mock adapter is in `src/providers/mock/mock-adapter.ts`. It returns scripted results. A script can return an answer, a limit message, a CAPTCHA signal, a signed-out signal, or a failure. Tests for the router, the usage tracker, the quality check, and interactive mode use it.
+
+| Method | Job |
+| --- | --- |
+| `setNext` | Set the result of the next request. |
+| `setSignedIn` | Set the signed-in state that `isSignedIn` returns. |
+| `requests` | The requests that the adapter received. |
+| `script` | The current state of the mock. |
+
+The helper `createMockAdapter` makes an adapter with one scripted result.
 
 ## What to do when a provider changes its page
 
