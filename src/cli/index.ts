@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import './quiet-sqlite-warning.js';
 
+import { realpathSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -29,11 +30,26 @@ export function createProgram(): Command {
   return program;
 }
 
-const entryPath = process.argv[1];
-const thisFile = fileURLToPath(import.meta.url);
-const isEntryPoint = entryPath !== undefined && path.resolve(entryPath) === path.resolve(thisFile);
+/**
+ * Return true when this file is the program that Node started. The bin that `npm link` makes
+ * reaches this file through a link, so the argument and the module path can differ in text. Both
+ * are resolved to their real paths before they are compared.
+ */
+function isEntryPoint(): boolean {
+  const entryPath = process.argv[1];
+  if (entryPath === undefined) {
+    return false;
+  }
 
-if (isEntryPoint) {
+  const thisFile = fileURLToPath(import.meta.url);
+  try {
+    return realpathSync(entryPath) === realpathSync(thisFile);
+  } catch {
+    return path.resolve(entryPath) === path.resolve(thisFile);
+  }
+}
+
+if (isEntryPoint()) {
   await runFromTerminal(process.argv);
 }
 
