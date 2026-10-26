@@ -1,3 +1,8 @@
+import type { BrowserContextOptions } from 'playwright';
+
+/** The saved session state that a browser context loads. It is a file path or the state object. */
+export type BrowserStorageState = NonNullable<BrowserContextOptions['storageState']>;
+
 /** The page that an adapter works on. */
 export interface BrowserPage {
   /** Go to a URL and wait for the page to load. */
@@ -36,7 +41,7 @@ export interface BrowserLaunchOptions {
   /** The page to open after the browser starts. */
   readonly startUrl?: string;
   /** The saved session state that the browser loads. */
-  readonly storageState?: string;
+  readonly storageState?: BrowserStorageState;
 }
 
 /** A running browser with one open page. */
@@ -60,7 +65,7 @@ export interface BrowserDriverOptions {
   readonly mode: BrowserMode;
   readonly channel: BrowserChannel;
   readonly startUrl?: string;
-  readonly storageState?: string;
+  readonly storageState?: BrowserStorageState;
 }
 
 /** Start one browser build. The tests replace it with a fake. */

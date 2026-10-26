@@ -12,7 +12,6 @@ const cliPath = path.join(repoRoot, 'src', 'cli', 'index.ts');
 const commandNames = ['login', 'logout', 'accounts', 'ask', 'chat', 'usage', 'config', 'doctor'];
 
 const stubCases: Array<[string, string[]]> = [
-  ['ask', ['ask', 'Explain a thread.']],
   ['chat', ['chat']],
   ['config', ['config']],
   ['doctor', ['doctor']],
