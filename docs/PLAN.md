@@ -102,7 +102,7 @@ Each part has a name, a goal, the files it touches, a test, and a "done when" ch
 
 #### P01 Repository skeleton
 
-- **Goal:** Create the TypeScript project with lint, format, and test tools.
+- **Goal:** Create the TypeScript project with lint, format, and test tools. Add the npm scripts `build`, `lint`, `format`, and `test`.
 - **Files:** `package.json`, `package-lock.json`, `tsconfig.json`, `eslint.config.js`, `.prettierrc.json`, `.editorconfig`, `.gitignore`, `vitest.config.ts`, `src/index.ts`, `tests/smoke.test.ts`.
 - **Test:** `tests/smoke.test.ts` checks that `src/index.ts` exports the application name.
 - **Done when:** `npm run build`, `npm run lint`, and `npm test` pass.
