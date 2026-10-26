@@ -23,7 +23,7 @@ export interface DoctorEnvironment {
   /** The local store database. */
   readonly databaseFile: string;
   /** The key store. The check only reads whether a key exists. */
-  readonly keyStore: Pick<KeyStore, 'hasKey'>;
+  readonly keyStore: Pick<KeyStore, 'hasKey' | 'getKey'>;
   /** Return true when the folder exists or can be made, and a file can be written in it. */
   folderIsWritable(folder: string): Promise<boolean>;
   /** Return the path of a browser that the application can start, or undefined. */
@@ -81,20 +81,23 @@ export async function checkDataFolder(env: DoctorEnvironment): Promise<CheckResu
 /** Check that the key store can be read. A missing key is not a failure. It is made on first use. */
 export async function checkKeyStore(env: DoctorEnvironment): Promise<CheckResult> {
   try {
-    const hasKey = await env.keyStore.hasKey();
-
-    return {
-      name: 'Key store',
-      status: 'pass',
-      message: hasKey ? 'the key is stored' : 'no key yet, it is made on the first use',
-    };
+    if (!(await env.keyStore.hasKey())) {
+      return {
+        name: 'Key store',
+        status: 'pass',
+        message: 'no key yet, it is made on the first use',
+      };
+    }
   } catch {
-    return {
-      name: 'Key store',
-      status: 'fail',
-      message: 'the key store cannot be read',
-      hint: 'Check the keys folder in the data folder, then run the check again.',
-    };
+    return keyStoreFailure();
+  }
+
+  // A file that exists can still be useless. It may belong to another Windows user or be damaged.
+  try {
+    await env.keyStore.getKey();
+    return { name: 'Key store', status: 'pass', message: 'the saved key unwraps' };
+  } catch {
+    return keyStoreFailure();
   }
 }
 
@@ -137,4 +140,13 @@ export function formatCheck(result: CheckResult): string {
   return result.status === 'fail' && result.hint !== undefined
     ? `${line}\n     ${result.hint}`
     : line;
+}
+
+function keyStoreFailure(): CheckResult {
+  return {
+    name: 'Key store',
+    status: 'fail',
+    message: 'the saved key cannot be read',
+    hint: 'The key file is for another Windows user or is damaged. Delete the file in the keys folder, sign in to each account again, and save the classifier API keys again with "gauntlet key set".',
+  };
 }

@@ -128,6 +128,9 @@ describe.skipIf(process.platform !== 'win32')('WindowsKeyStore key handling', ()
     expect(seen.length).toBeGreaterThan(0);
     for (const call of seen) {
       expect(call.program.endsWith('powershell.exe')).toBe(true);
+      // The execution policy only applies to script files. The helper runs as an encoded command, so no policy flag is passed.
+      expect(call.args).not.toContain('-ExecutionPolicy');
+      expect(call.args).not.toContain('Bypass');
       expect(call.args.join(' ')).not.toContain(base64Key);
       expect(call.args.join(' ')).not.toContain(key.toString('hex'));
       expect(call.input).toBe(base64Key);

@@ -4,7 +4,7 @@ import type { Config } from '../core/config.js';
 import type { DifficultyClass } from '../core/config-schema.js';
 import { AppError } from '../core/errors.js';
 import { ContextStore } from '../context/context-store.js';
-import { SqliteRequestPacer, type RequestPacer } from './request-pacer.js';
+import { SqliteRequestPacer, type RequestPacer, type WaitReason } from './request-pacer.js';
 import {
   ContextSelector,
   estimateTokens,
@@ -335,6 +335,7 @@ export function sharedRequestOptions(
   services: Services,
   config: Config,
   launcher: BrowserLauncher,
+  onWait?: (reason: WaitReason, waitMs: number) => void,
 ): Omit<RunRequestOptions, 'text' | 'conversationId'> {
   return {
     config,
@@ -353,6 +354,7 @@ export function sharedRequestOptions(
     pacer: new SqliteRequestPacer({
       database: services.database,
       minDelayMs: config.requests.minDelaySeconds * 1000,
+      ...(onWait === undefined ? {} : { onWait }),
     }),
   };
 }

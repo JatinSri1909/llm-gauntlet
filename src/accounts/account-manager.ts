@@ -107,6 +107,8 @@ export class AccountManager {
   /** Remove an account. It returns true when an account was removed. */
   remove(id: number): boolean {
     const changes = this.database.run('DELETE FROM accounts WHERE id = ?', [id]);
+    // The pacer keeps one state row for each account. The row goes with the account.
+    this.database.run('DELETE FROM settings WHERE key = ?', [`pace.${String(id)}`]);
     return changes > 0;
   }
 

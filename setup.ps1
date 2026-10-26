@@ -6,7 +6,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$MinimumNodeVersion = [version]'22.11.0'
+$MinimumNodeVersion = [version]'24.0.0'
 $DataFolderName = 'llm-gauntlet'
 
 function Test-CommandExists {
@@ -148,29 +148,23 @@ try {
         Write-Host 'Building the application.'
         Invoke-Native -Program 'npm.cmd' -Arguments @('run', 'build')
 
-        $packageJsonPath = Join-Path $PSScriptRoot 'package.json'
-        $packageJson = Get-Content -LiteralPath $packageJsonPath -Raw | ConvertFrom-Json
-        $hasPlaywright = $false
-        $dependenciesProperty = $packageJson.PSObject.Properties['dependencies']
-        if ($null -ne $dependenciesProperty) {
-            $playwrightProperty = $dependenciesProperty.Value.PSObject.Properties['playwright']
-            if ($null -ne $playwrightProperty) {
-                $hasPlaywright = $true
-            }
-        }
+        # Edge is tried first. Chromium is the fallback, so only Chromium is downloaded.
+        Write-Host 'Installing the Chromium browser for the fallback.'
+        Invoke-Native -Program 'npx.cmd' -Arguments @('playwright', 'install', 'chromium')
 
-        if ($hasPlaywright) {
-            Write-Host 'Installing the Playwright browsers.'
-            Invoke-Native -Program 'npx.cmd' -Arguments @('playwright', 'install')
-        } else {
-            Write-Host 'Playwright browsers: skipped. The package arrives in part P18.'
-        }
-
+        Write-Host ''
+        Write-Host 'The gauntlet command needs a global npm link, which changes your global npm folder.'
+        # Without a terminal there is nobody to ask, so the answer is no.
         try {
+            $linkAnswer = Read-Host 'Create the global link now? (y/N)'
+        } catch {
+            $linkAnswer = ''
+        }
+        if ($linkAnswer -match '^(y|yes)$') {
             Invoke-Native -Program 'npm.cmd' -Arguments @('link')
             Write-Host 'The gauntlet command is linked.'
-        } catch {
-            Write-Warning "Could not link the gauntlet command. Run 'npm link' in the repository."
+        } else {
+            Write-Host "Skipped. Run 'npm link' in the repository later to get the gauntlet command."
         }
 
         Write-Host 'Creating the data folder.'

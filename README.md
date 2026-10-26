@@ -115,8 +115,9 @@ The setup script does these steps:
 1. It checks for Node.js, npm, and Git.
 2. It asks before it runs `winget install` for a missing tool.
 3. It installs the dependencies with `npm ci`.
-4. It installs the Playwright browsers.
-5. It creates the local data folder.
+4. It installs the Chromium browser, used when Microsoft Edge is not found.
+5. It asks before it creates a global `npm link` for the `gauntlet` command. A global link changes your global npm folder.
+6. It creates the local data folder.
 
 The setup script does not change any system setting. It does not change the registry. It does not change a machine-wide policy.
 
@@ -135,6 +136,8 @@ The setup script does not change any system setting. It does not change the regi
 | `gauntlet chat` | Start interactive mode. Same as `gauntlet`. |
 | `gauntlet usage` | Show the local usage records. |
 | `gauntlet config` | Show the settings. Use `config get <key>` and `config set <key> <value>` to read or change one. |
+| `gauntlet key set <provider>` | Save the API key of the classifier. Type it at the hidden prompt. Use `groq` or `openrouter`. |
+| `gauntlet key remove <provider>` | Delete the saved API key of the classifier. |
 | `gauntlet doctor` | Check Node.js, the browser, the data folder, and the key store. |
 
 ### Interactive mode
@@ -183,7 +186,7 @@ Read `docs/ARCHITECTURE.md` for more detail.
 - The application encrypts session state with AES-256-GCM.
 - Windows DPAPI protects the encryption key.
 - The application never writes a secret to a log, a prompt, or a commit.
-- The decision layer can use a free API (Groq or OpenRouter) to classify a task. That API receives the first 2000 characters of your prompt. The first-run notice about this is Planned. To stop all calls to the API, set `localOnly` to `true` with `gauntlet config set localOnly true`. The application then uses local rules only.
+- The decision layer can use a free API (Groq or OpenRouter) to classify a task. That API receives the first 2000 characters of your prompt. `gauntlet key set` shows a notice about this before it saves a key. To stop all calls to the API, set `localOnly` to `true` with `gauntlet config set localOnly true`. The application then uses local rules only.
 
 Read `docs/SECURITY.md` for more detail.
 

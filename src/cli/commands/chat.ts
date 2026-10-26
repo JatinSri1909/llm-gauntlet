@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 
+import { waitMessage } from '../../app/request-pacer.js';
 import { runRequest, sharedRequestOptions } from '../../app/run-request.js';
 import { createBrowserLauncher } from '../../browser/launcher.js';
 import type { BrowserLauncher } from '../../browser/types.js';
@@ -13,7 +14,7 @@ import { SLASH_COMMANDS } from '../../interactive/commands/index.js';
 import type { SlashServices } from '../../interactive/commands/types.js';
 import { createTerminalReader } from '../../interactive/terminal-reader.js';
 import { runShell, type LineReader } from '../../interactive/shell.js';
-import type { TerminalOutput } from '../../interactive/render.js';
+import { writeNotice, type TerminalOutput } from '../../interactive/render.js';
 
 import { withServices } from './services.js';
 
@@ -75,7 +76,9 @@ export async function runChat(deps: ChatCommandDeps = {}): Promise<void> {
         services: slashServices,
         send: (text, conversationId) =>
           runRequest({
-            ...sharedRequestOptions(services, config, launcher),
+            ...sharedRequestOptions(services, config, launcher, (reason, waitMs) =>
+              writeNotice(deps.output ?? createTerminalOutput(), waitMessage(reason, waitMs)),
+            ),
             text,
             ...(conversationId === undefined ? {} : { conversationId }),
           }),

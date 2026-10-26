@@ -1,12 +1,12 @@
-[CmdletBinding()]
-param(
-    [Parameter(Mandatory = $true)]
-    [ValidateSet('protect', 'unprotect')]
-    [string]$Action
-)
-
+# This file runs as an encoded command. The key-store code puts "$Action" in front of this text.
+# An encoded command is not a script file, so the execution policy does not apply to it.
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+if ($Action -ne 'protect' -and $Action -ne 'unprotect') {
+    [Console]::Error.WriteLine('The action is not valid.')
+    exit 5
+}
 
 # The key comes through stdin. It never goes in a command line argument.
 Add-Type -AssemblyName System.Security

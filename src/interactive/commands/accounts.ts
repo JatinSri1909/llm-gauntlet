@@ -1,15 +1,6 @@
-import type { AccountState } from '../../accounts/account-manager.js';
-
 import { writeLine } from './write.js';
 import type { SlashCommand } from './types.js';
-
-/** The words that show an account state. */
-export const STATE_TEXT: Record<AccountState, string> = {
-  needs_login: 'needs login',
-  ready: 'ready',
-  cooling_down: 'cooling down',
-  blocked: 'blocked',
-};
+import { STATE_TEXT } from '../../accounts/state-text.js';
 
 /** The accounts command. It lists the accounts and their states. */
 export const accountsCommand: SlashCommand = {

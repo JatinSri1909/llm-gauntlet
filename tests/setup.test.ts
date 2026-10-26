@@ -23,6 +23,21 @@ describe('setup.cmd', () => {
   });
 });
 
+describe('setup.ps1 global link question', () => {
+  it('treats a missing terminal as the answer no, so a finished setup does not fail at the end', () => {
+    const content = readFileSync(setupPs1Path, 'utf8');
+
+    const question = content.indexOf("Read-Host 'Create the global link now?");
+    const before = content.slice(Math.max(0, question - 200), question);
+    const after = content.slice(question, question + 200);
+
+    expect(question).toBeGreaterThan(-1);
+    expect(before).toMatch(/try\s*\{\s*\$linkAnswer = $/);
+    expect(after).toMatch(/\}\s*catch\s*\{\s*\$linkAnswer = ''/);
+    expect(content).toContain("npm.cmd' -Arguments @('link')");
+  });
+});
+
 describe.skipIf(process.platform !== 'win32')('setup.ps1 -CheckOnly', () => {
   let tempDir: string;
 
@@ -46,12 +61,20 @@ describe.skipIf(process.platform !== 'win32')('setup.ps1 -CheckOnly', () => {
     );
 
     const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
-    expect(result.status).toBe(0);
+    // The setup needs Node.js 24. A machine with an older Node.js must fail the check, not pass it.
+    const nodeMajor = Number(process.versions.node.split('.')[0]);
+    if (nodeMajor >= 24) {
+      expect(result.status).toBe(0);
+      expect(output).toContain('Check passed');
+    } else {
+      expect(result.status).toBe(1);
+      expect(output).toContain('too old');
+      expect(output).toContain('Check failed');
+    }
     expect(output).toContain('Node.js');
     expect(output).toContain('npm');
     expect(output).toContain('Git');
     expect(output).toContain('Data folder');
-    expect(output).toContain('Check passed');
     expect(output).not.toContain('Installing the dependencies');
     expect(existsSync(path.join(tempDir, 'llm-gauntlet'))).toBe(false);
   });

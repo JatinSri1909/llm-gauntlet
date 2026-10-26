@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -109,18 +110,16 @@ export class WindowsKeyStore implements KeyStore {
   }
 
   private async runHelper(action: 'protect' | 'unprotect', base64Input: string): Promise<string> {
+    // The helper text runs inside the command line as an encoded command. The execution policy
+    // only checks script files, so no policy flag is needed. The key still goes through stdin.
+    const helperText = await readFile(this.helperPath, 'utf8');
+    const script = `$Action = '${action}'
+${helperText}`;
+    const encoded = Buffer.from(script, 'utf16le').toString('base64');
+
     const result = await this.shellRunner.run(
       this.powershellPath,
-      [
-        '-NoProfile',
-        '-NonInteractive',
-        '-ExecutionPolicy',
-        'Bypass',
-        '-File',
-        this.helperPath,
-        '-Action',
-        action,
-      ],
+      ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded],
       { input: base64Input, timeoutMs: 20_000 },
     );
 

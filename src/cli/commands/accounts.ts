@@ -1,16 +1,9 @@
-import type { AccountState } from '../../accounts/account-manager.js';
 import { removeAccount } from '../../accounts/logout.js';
 
 import { Command } from 'commander';
 
 import { withServices } from './services.js';
-
-const STATE_TEXT: Record<AccountState, string> = {
-  needs_login: 'needs login',
-  ready: 'ready',
-  cooling_down: 'cooling down',
-  blocked: 'blocked',
-};
+import { STATE_TEXT } from '../../accounts/state-text.js';
 
 /** Make the accounts command. */
 export function createAccountsCommand(): Command {

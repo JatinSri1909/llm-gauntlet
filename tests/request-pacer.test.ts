@@ -5,7 +5,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { migrationsFolder } from '../src/app/services.js';
-import { SqliteRequestPacer } from '../src/app/request-pacer.js';
+import { SqliteRequestPacer, waitMessage, type WaitReason } from '../src/app/request-pacer.js';
 import { SqliteDatabase } from '../src/store/database.js';
 import { loadMigrations, runMigrations } from '../src/store/migrate.js';
 
@@ -109,5 +109,97 @@ describe('SqliteRequestPacer', () => {
     clock += MIN_DELAY_MS;
     await expect(pacer.run(1, async () => 'next')).resolves.toBe('next');
     expect(sleeps).toEqual([]);
+  });
+
+  it('does not wait behind a lease whose process has stopped', async () => {
+    // A process id that is not running. Its lease must not block the account.
+    database.run('INSERT INTO settings (key, value) VALUES (?, ?)', [
+      'pace.1',
+      JSON.stringify({ leaseUntil: Date.now() + 60_000, owner: '999999999:abc', lastEnd: 0 }),
+    ]);
+    const pacer = new SqliteRequestPacer({ database, minDelayMs: 0 });
+
+    await expect(pacer.run(1, async () => 'ran')).resolves.toBe('ran');
+  });
+
+  it('announces a wait once when it has to wait for another request', async () => {
+    const first = new SqliteRequestPacer({ database, minDelayMs: 0 });
+    const announced: WaitReason[] = [];
+    const second = new SqliteRequestPacer({
+      database,
+      minDelayMs: 0,
+      onWait: (reason) => {
+        announced.push(reason);
+      },
+    });
+    let release: () => void = () => undefined;
+
+    const running = first.run(1, async () => {
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+    });
+    const waiting = second.run(1, async () => undefined);
+
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    release();
+    await running;
+    await waiting;
+
+    expect(announced).toEqual(['busy']);
+  });
+
+  it('says that it waits for the minimum delay, with the time left, when nothing else runs', async () => {
+    const calls: Array<[WaitReason, number]> = [];
+    const pacer = new SqliteRequestPacer({
+      database,
+      minDelayMs: MIN_DELAY_MS,
+      now: () => clock,
+      sleep: async (milliseconds) => {
+        clock += milliseconds;
+      },
+      onWait: (reason, waitMs) => {
+        calls.push([reason, waitMs]);
+      },
+    });
+    await pacer.run(1, async () => undefined);
+
+    await pacer.run(1, async () => undefined);
+
+    expect(calls).toEqual([['delay', MIN_DELAY_MS]]);
+  });
+
+  it('does not announce anything when there is no wait', async () => {
+    const calls: WaitReason[] = [];
+    const pacer = new SqliteRequestPacer({
+      database,
+      minDelayMs: MIN_DELAY_MS,
+      now: () => clock,
+      onWait: (reason) => {
+        calls.push(reason);
+      },
+    });
+
+    await pacer.run(1, async () => undefined);
+    await pacer.run(2, async () => undefined);
+
+    expect(calls).toEqual([]);
+  });
+});
+
+describe('waitMessage', () => {
+  it('names the other request when the account is busy', () => {
+    expect(waitMessage('busy', 3_000)).toBe(
+      'Waiting for another request on this account to finish.',
+    );
+  });
+
+  it('gives the seconds, rounded up and never below one, for the minimum delay', () => {
+    expect(waitMessage('delay', 9_200)).toBe(
+      'Waiting 10 seconds before the next request to this account.',
+    );
+    expect(waitMessage('delay', 1)).toBe(
+      'Waiting 1 seconds before the next request to this account.',
+    );
   });
 });

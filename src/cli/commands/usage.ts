@@ -1,18 +1,11 @@
 import { Command } from 'commander';
 
-import type { AccountState } from '../../accounts/account-manager.js';
 import { loadConfig } from '../../core/config.js';
 import { createPlatform } from '../../platform/index.js';
 import { UsageTracker } from '../../usage/usage-tracker.js';
 
 import { withServices } from './services.js';
-
-const STATE_TEXT: Record<AccountState, string> = {
-  needs_login: 'needs login',
-  ready: 'ready',
-  cooling_down: 'cooling down',
-  blocked: 'blocked',
-};
+import { STATE_TEXT } from '../../accounts/state-text.js';
 
 /** The parts that a test can replace. */
 export interface UsageCommandDeps {

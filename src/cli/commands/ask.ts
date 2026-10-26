@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 
+import { waitMessage } from '../../app/request-pacer.js';
 import { runRequest, sharedRequestOptions } from '../../app/run-request.js';
 import { createBrowserLauncher } from '../../browser/launcher.js';
 import type { BrowserLauncher } from '../../browser/types.js';
@@ -25,7 +26,12 @@ export function createAskCommand(deps: AskCommandDeps = {}): Command {
       await withServices(async (services) => {
         const config = await (deps.config ?? readConfig)();
         const result = await runRequest({
-          ...sharedRequestOptions(services, config, deps.launcher ?? createBrowserLauncher()),
+          ...sharedRequestOptions(
+            services,
+            config,
+            deps.launcher ?? createBrowserLauncher(),
+            (reason, waitMs) => console.error(waitMessage(reason, waitMs)),
+          ),
           text,
         });
 

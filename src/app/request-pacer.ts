@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 
+import { StoreError } from '../core/errors.js';
 import type { SqliteDatabase } from '../store/database.js';
 
 /** The longest time that one request may hold an account. It covers the answer time limit. */
@@ -24,7 +25,26 @@ export interface RequestPacerOptions {
   readonly minDelayMs: number;
   readonly now?: () => number;
   readonly sleep?: (milliseconds: number) => Promise<void>;
+  /** Called when a request starts to wait, and again when the reason for the wait changes. */
+  readonly onWait?: (reason: WaitReason, waitMs: number) => void;
 }
+
+/** Why a request waits. `busy`: another request holds the account. `delay`: the minimum gap. */
+export type WaitReason = 'busy' | 'delay';
+
+/** The line that tells the user why a request waits. */
+export function waitMessage(reason: WaitReason, waitMs: number): string {
+  if (reason === 'busy') {
+    return 'Waiting for another request on this account to finish.';
+  }
+
+  const seconds = Math.max(1, Math.ceil(waitMs / 1000));
+  return `Waiting ${String(seconds)} seconds before the next request to this account.`;
+}
+
+type Attempt =
+  | { readonly kind: 'acquired' }
+  | { readonly kind: 'wait'; readonly reason: WaitReason; readonly ms: number };
 
 /** Run one request for an account. Only one request runs at a time for an account. */
 export interface RequestPacer {
@@ -49,7 +69,8 @@ export class SqliteRequestPacer implements RequestPacer {
   }
 
   async run<T>(accountId: number, action: () => Promise<T>): Promise<T> {
-    const owner = randomBytes(8).toString('hex');
+    // The owner names the process, so a lease held by a killed process can be told apart.
+    const owner = `${String(process.pid)}:${randomBytes(8).toString('hex')}`;
     await this.acquire(accountId, owner);
 
     try {
@@ -60,33 +81,39 @@ export class SqliteRequestPacer implements RequestPacer {
   }
 
   private async acquire(accountId: number, owner: string): Promise<void> {
+    let announced: WaitReason | undefined;
     for (;;) {
-      const waitMs = this.tryAcquire(accountId, owner);
-      if (waitMs === 0) {
+      const attempt = this.tryAcquire(accountId, owner);
+      if (attempt.kind === 'acquired') {
         return;
       }
 
-      await this.sleep(Math.min(waitMs, POLL_MS));
+      if (announced !== attempt.reason) {
+        announced = attempt.reason;
+        this.options.onWait?.(attempt.reason, attempt.ms);
+      }
+      await this.sleep(Math.min(attempt.ms, POLL_MS));
     }
   }
 
-  /** Take the lease when the account is free and the minimum delay has passed. Otherwise return the wait. */
-  private tryAcquire(accountId: number, owner: string): number {
+  /** Take the lease when the account is free and the minimum delay has passed. Otherwise say why it waits. */
+  private tryAcquire(accountId: number, owner: string): Attempt {
     return this.inImmediateTransaction(() => {
       const now = this.now();
       const state = this.readState(accountId);
 
-      if (state.leaseUntil > now) {
-        return state.leaseUntil - now;
+      // A lease whose process has stopped is free. Otherwise a killed request blocks the account.
+      if (state.leaseUntil > now && isProcessAlive(state.owner)) {
+        return { kind: 'wait', reason: 'busy', ms: state.leaseUntil - now };
       }
 
       const readyAt = state.lastEnd + this.options.minDelayMs;
       if (readyAt > now) {
-        return readyAt - now;
+        return { kind: 'wait', reason: 'delay', ms: readyAt - now };
       }
 
       this.writeState(accountId, { leaseUntil: now + LEASE_MS, owner, lastEnd: state.lastEnd });
-      return 0;
+      return { kind: 'acquired' };
     });
   }
 
@@ -127,7 +154,15 @@ export class SqliteRequestPacer implements RequestPacer {
 
   /** Run the action in a write transaction. The write lock is taken at the start, so two processes cannot both take the lease. */
   private inImmediateTransaction<T>(action: () => T): T {
-    this.options.database.exec('BEGIN IMMEDIATE');
+    try {
+      this.options.database.exec('BEGIN IMMEDIATE');
+    } catch (error) {
+      throw new StoreError('The local store is busy with another llm-gauntlet process.', {
+        hint: 'Wait a moment and try again.',
+        cause: error,
+      });
+    }
+
     try {
       const result = action();
       this.options.database.exec('COMMIT');
@@ -141,4 +176,20 @@ export class SqliteRequestPacer implements RequestPacer {
 
 function paceKey(accountId: number): string {
   return `pace.${String(accountId)}`;
+}
+
+/** Return true when the process named in the owner is still running on this machine. */
+function isProcessAlive(owner: string): boolean {
+  const pid = Number(owner.split(':')[0]);
+  if (!Number.isInteger(pid) || pid <= 0) {
+    return false;
+  }
+
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    // EPERM means the process exists but belongs to another user, so it still holds the lease.
+    return error instanceof Error && 'code' in error && error.code === 'EPERM';
+  }
 }

@@ -23,6 +23,7 @@ const CODES: Record<StyleName, string> = {
 
 const SPINNER_FRAMES = ['|', '/', '-', '\\'] as const;
 const SPINNER_INTERVAL_MS = 100;
+const SPINNER_CLEAR_WIDTH = 40;
 
 /** Return true when the NO_COLOR convention asks for plain text. */
 export function isNoColorSet(env: NodeJS.ProcessEnv): boolean {
@@ -37,6 +38,15 @@ export function createStyle(output: TerminalOutput, env: NodeJS.ProcessEnv): Sty
     enabled,
     paint: (text, name) => (enabled ? `\u001b[${CODES[name]}m${text}\u001b[0m` : text),
   };
+}
+
+/**
+ * Write a line of notice text. On a terminal it first clears the line that the spinner draws on,
+ * so the notice does not mix with the spinner.
+ */
+export function writeNotice(output: TerminalOutput, text: string): void {
+  const clear = output.isTerminal ? `\r${' '.repeat(SPINNER_CLEAR_WIDTH)}\r` : '';
+  output.write(`${clear}${text}\n`);
 }
 
 /** A spinner that the caller stops. */

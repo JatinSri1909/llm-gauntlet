@@ -37,7 +37,7 @@ function healthyEnvironment(overrides: Partial<DoctorEnvironment> = {}): DoctorE
     nodeVersion: '24.1.0',
     dataFolder: 'C:/data',
     databaseFile: 'C:/data/gauntlet.db',
-    keyStore: { hasKey: async () => true },
+    keyStore: { hasKey: async () => true, getKey: async () => Buffer.alloc(32) },
     folderIsWritable: async () => true,
     findBrowser: async () => 'C:/Edge/msedge.exe',
     checkDatabase: async () => undefined,
@@ -75,10 +75,12 @@ describe('doctor checks', () => {
   it('passes with or without a stored key, and fails when the key store cannot be read', async () => {
     const withKey = await checkKeyStore(healthyEnvironment());
     expect(withKey.status).toBe('pass');
-    expect(withKey.message).toBe('the key is stored');
+    expect(withKey.message).toBe('the saved key unwraps');
 
     const noKey = await checkKeyStore(
-      healthyEnvironment({ keyStore: { hasKey: async () => false } }),
+      healthyEnvironment({
+        keyStore: { hasKey: async () => false, getKey: async () => Buffer.alloc(32) },
+      }),
     );
     expect(noKey.status).toBe('pass');
     expect(noKey.message).toContain('made on the first use');
@@ -89,11 +91,26 @@ describe('doctor checks', () => {
           hasKey: async () => {
             throw new Error('DPAPI failed');
           },
+          getKey: async () => Buffer.alloc(32),
         },
       }),
     );
     expect(broken.status).toBe('fail');
     expect(broken.message).not.toContain('DPAPI');
+
+    const damaged = await checkKeyStore(
+      healthyEnvironment({
+        keyStore: {
+          hasKey: async () => true,
+          getKey: async () => {
+            throw new Error('The key file is not valid.');
+          },
+        },
+      }),
+    );
+    expect(damaged.status).toBe('fail');
+    expect(damaged.message).toBe('the saved key cannot be read');
+    expect(damaged.hint).toContain('gauntlet key set');
   });
 
   it('passes when the database opens and fails with its error when it does not', async () => {

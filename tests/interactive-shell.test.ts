@@ -284,7 +284,7 @@ describe('shell output helpers', () => {
           nodeVersion: '24.0.0',
           dataFolder: tempDir,
           databaseFile: dataPaths.databaseFile,
-          keyStore: { hasKey: async () => true },
+          keyStore: { hasKey: async () => true, getKey: async () => Buffer.alloc(32) },
           folderIsWritable: async () => true,
           findBrowser: async () => undefined,
           checkDatabase: async () => undefined,
