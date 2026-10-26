@@ -4,6 +4,9 @@
   "private": true,
   "description": "An open source terminal application that pools the free AI accounts of one user.",
   "type": "module",
+  "bin": {
+    "gauntlet": "dist/cli/index.js"
+  },
   "engines": {
     "node": ">=22.11.0"
   },
@@ -23,5 +26,8 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.0",
     "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "commander": "^15.0.0"
   }
 }
