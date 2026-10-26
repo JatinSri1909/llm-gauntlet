@@ -5,14 +5,13 @@ import { fileURLToPath } from 'node:url';
 import { CommanderError } from 'commander';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createProgram, INTERACTIVE_PLANNED_MESSAGE } from '../src/cli/index.js';
+import { createProgram } from '../src/cli/index.js';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cliPath = path.join(repoRoot, 'src', 'cli', 'index.ts');
 const commandNames = ['login', 'logout', 'accounts', 'ask', 'chat', 'usage', 'config', 'doctor'];
 
 const stubCases: Array<[string, string[]]> = [
-  ['chat', ['chat']],
   ['config', ['config']],
   ['doctor', ['doctor']],
 ];
@@ -53,14 +52,6 @@ describe('CLI shell', () => {
     for (const name of commandNames) {
       expect(help).toContain(name);
     }
-  });
-
-  it('prints a planned message when there are no arguments', async () => {
-    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
-
-    await createProgram().parseAsync(['node', 'gauntlet']);
-
-    expect(log).toHaveBeenCalledWith(INTERACTIVE_PLANNED_MESSAGE);
   });
 
   it.each(stubCases)('prints a planned message for the %s command', async (name, args) => {

@@ -4,10 +4,8 @@ import { fileURLToPath } from 'node:url';
 
 import { Command } from 'commander';
 
+import { runChat } from './commands/chat.js';
 import { registerCommands } from './commands/index.js';
-
-export const INTERACTIVE_PLANNED_MESSAGE =
-  'Interactive mode is Planned. Use "gauntlet --help" to list the commands.';
 
 /** Build the command line program. */
 export function createProgram(): Command {
@@ -20,8 +18,8 @@ export function createProgram(): Command {
 
   registerCommands(program);
 
-  program.action(() => {
-    console.log(INTERACTIVE_PLANNED_MESSAGE);
+  program.action(async () => {
+    await runChat();
   });
 
   return program;

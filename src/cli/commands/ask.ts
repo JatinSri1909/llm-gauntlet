@@ -1,13 +1,10 @@
 import { Command } from 'commander';
 
-import { runRequest } from '../../app/run-request.js';
-import { ContextStore } from '../../context/context-store.js';
+import { runRequest, sharedRequestOptions } from '../../app/run-request.js';
 import { createBrowserLauncher } from '../../browser/launcher.js';
 import type { BrowserLauncher } from '../../browser/types.js';
 import { loadConfig, type Config } from '../../core/config.js';
 import { createPlatform } from '../../platform/index.js';
-import { SecretStore } from '../../security/secret-store.js';
-import { UsageTracker } from '../../usage/usage-tracker.js';
 
 import { withServices } from './services.js';
 
@@ -28,19 +25,8 @@ export function createAskCommand(deps: AskCommandDeps = {}): Command {
       await withServices(async (services) => {
         const config = await (deps.config ?? readConfig)();
         const result = await runRequest({
+          ...sharedRequestOptions(services, config, deps.launcher ?? createBrowserLauncher()),
           text,
-          config,
-          accounts: services.accounts,
-          vault: services.vault,
-          registry: services.registry,
-          store: new ContextStore(services.database),
-          usage: new UsageTracker({
-            database: services.database,
-            accounts: services.accounts,
-            windowHours: config.usage.windowHours,
-          }),
-          launcher: deps.launcher ?? createBrowserLauncher(),
-          secrets: new SecretStore(services.vault),
         });
 
         for (const skipped of result.skipped) {

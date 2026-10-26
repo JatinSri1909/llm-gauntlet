@@ -3,16 +3,23 @@ import type { BrowserLauncher, BrowserStorageState } from '../browser/types.js';
 import type { Config } from '../core/config.js';
 import type { DifficultyClass } from '../core/config-schema.js';
 import { AppError } from '../core/errors.js';
-import type { ContextStore } from '../context/context-store.js';
-import { estimateTokens } from '../context/context-selector.js';
+import { ContextStore } from '../context/context-store.js';
+import {
+  ContextSelector,
+  estimateTokens,
+  type ContextBudget,
+} from '../context/context-selector.js';
 import { answerWithEscalation } from '../decision/escalation.js';
 import { classifyTask, type ClassifyResult, type SecretReader } from '../decision/classifier.js';
 import type { QualityProblem } from '../decision/quality-check.js';
 import { Router } from '../decision/router.js';
 import type { ProviderResult } from '../providers/types.js';
 import type { AdapterRegistry } from '../providers/registry.js';
+import { SecretStore } from '../security/secret-store.js';
 import type { SessionVault } from '../security/session-vault.js';
-import type { UsageTracker } from '../usage/usage-tracker.js';
+import { UsageTracker } from '../usage/usage-tracker.js';
+
+import type { Services } from './services.js';
 
 /** An account that was skipped during a request, and why. */
 export interface SkippedAccount {
@@ -38,6 +45,11 @@ export interface RunRequestOptions {
   readonly fetch?: typeof fetch;
   /** The conversation to add to. A new conversation is made when it is missing. */
   readonly conversationId?: number;
+  /**
+   * The budget of the context that goes with each request. It is used only with a conversation
+   * that already has messages. Without it, the request text goes alone.
+   */
+  readonly budget?: ContextBudget;
 }
 
 /** The result of one request. */
@@ -91,11 +103,13 @@ export async function runRequest(options: RunRequestOptions): Promise<RunRequest
   const excluded = new Set<number>();
   const skipped: SkippedAccount[] = [];
   const attempts = new Map<DifficultyClass, Attempt>();
+  const promptFor = contextPrompter(options);
 
   const askAt = async (difficulty: DifficultyClass): Promise<string> => {
+    const prompt = promptFor(difficulty);
     for (;;) {
       const choice = router.route(difficulty, excluded);
-      const outcome = await sendToAccount(options, choice.account, choice.model, options.text);
+      const outcome = await sendToAccount(options, choice.account, choice.model, prompt);
 
       if (outcome.kind === 'answer') {
         attempts.set(difficulty, {
@@ -146,6 +160,21 @@ export async function runRequest(options: RunRequestOptions): Promise<RunRequest
     ...(answer.warning === undefined ? {} : { warning: answer.warning }),
     skipped,
   };
+}
+
+/**
+ * Return the text to send for a class. With a conversation that has messages and a budget, the
+ * text carries the selected context. Otherwise it is the request text alone.
+ */
+function contextPrompter(options: RunRequestOptions): (difficulty: DifficultyClass) => string {
+  if (options.budget === undefined || options.conversationId === undefined) {
+    return () => options.text;
+  }
+
+  const selector = new ContextSelector({ store: options.store, budget: options.budget });
+  const conversationId = options.conversationId;
+  return (difficulty) =>
+    selector.select({ conversationId, task: options.text, class: difficulty }).text;
 }
 
 /** Send one request to one account. It records the usage or the reason for a skip. */
@@ -221,4 +250,27 @@ function isStorageState(value: unknown): value is BrowserStorageState {
 /** Return a short reason for an error. A typed error gives its code. */
 function errorReason(error: unknown): string {
   return error instanceof AppError ? error.code : 'error';
+}
+
+/** The parts of a request that the commands share. The text and the conversation come later. */
+export function sharedRequestOptions(
+  services: Services,
+  config: Config,
+  launcher: BrowserLauncher,
+): Omit<RunRequestOptions, 'text' | 'conversationId'> {
+  return {
+    config,
+    accounts: services.accounts,
+    vault: services.vault,
+    registry: services.registry,
+    store: new ContextStore(services.database),
+    usage: new UsageTracker({
+      database: services.database,
+      accounts: services.accounts,
+      windowHours: config.usage.windowHours,
+    }),
+    launcher,
+    secrets: new SecretStore(services.vault),
+    budget: config.context,
+  };
 }
