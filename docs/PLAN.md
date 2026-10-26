@@ -62,7 +62,7 @@ Only the packages in this list are allowed. To add another package, update this 
 | `prettier` | dev | Format | P01 |
 | `commander` | runtime | Parse commands | P04 |
 | `zod` | runtime | Check config and API data | P06 |
-| `better-sqlite3` | runtime | SQLite fallback. Used only if `node:sqlite` is not stable enough | P10 |
+| `better-sqlite3` | runtime | Fallback only. It is not installed in version 1. The project uses `node:sqlite`. | Not used |
 | `playwright` | runtime | Control the browser | P18 |
 
 Rules for dependencies:
@@ -73,7 +73,7 @@ Rules for dependencies:
 
 ## Open items
 
-- **SQLite library (decision D6).** Part P10 checks if `node:sqlite` is stable enough on the Node.js LTS version. P10 records the result in `docs/DECISIONS.md`.
+- **SQLite library (decision D6).** Done. The project uses the built-in `node:sqlite` module. It needs no install and it has FTS5. Read decision D6 in `docs/DECISIONS.md`.
 - **Claude adapter page snapshots.** The Claude adapter needs a sanitised snapshot of the Claude web pages to write and test the selectors. The maintainer supplies the snapshots. The snapshots must hold no secret and no personal data.
 
 ## Milestones

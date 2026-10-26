@@ -10,22 +10,22 @@ describe('createPlatform', () => {
   });
 
   it('gives a planned error on Linux', () => {
-    expect(() => createPlatform('linux')).toThrowError(PlannedError);
-    expect(() => createPlatform('linux')).toThrowError(/Linux is Planned/);
+    expect(() => createPlatform('linux')).toThrow(PlannedError);
+    expect(() => createPlatform('linux')).toThrow(/Linux is Planned/);
   });
 
   it('gives a planned error on macOS', () => {
-    expect(() => createPlatform('darwin')).toThrowError(/macOS is Planned/);
+    expect(() => createPlatform('darwin')).toThrow(/macOS is Planned/);
   });
 
   it('uses process.platform by default', () => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue('linux');
 
-    expect(() => createPlatform()).toThrowError(/Linux is Planned/);
+    expect(() => createPlatform()).toThrow(/Linux is Planned/);
   });
 
   it('gives an error for an unknown platform', () => {
-    expect(() => createPlatform('aix')).toThrowError(PlatformError);
+    expect(() => createPlatform('aix')).toThrow(PlatformError);
   });
 });
 

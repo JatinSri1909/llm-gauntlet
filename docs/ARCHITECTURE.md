@@ -338,7 +338,7 @@ stateDiagram-v2
 
 ## Local store
 
-The local store is one SQLite database in the data folder.
+The local store is one SQLite database in the data folder. It uses the built-in `node:sqlite` module. Read decision D6 in `docs/DECISIONS.md`.
 
 ```mermaid
 erDiagram

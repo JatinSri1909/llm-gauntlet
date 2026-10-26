@@ -10,7 +10,7 @@ Status: Planned. The code does not exist yet.
 - All decisions below have the status "Accepted" and the date 2026-10-26, unless a record says otherwise.
 - To change a decision, add a new record that replaces the old record. Set the old record to "Replaced by D<number>". Do not delete a record.
 - A change to a decision needs approval from the maintainer.
-- Part P10 adds one record: the SQLite library choice (decision D6).
+- Part P10 resolved decision D6. It records the SQLite library choice.
 
 ## Index
 
@@ -83,10 +83,11 @@ Status: Planned. The code does not exist yet.
 
 ## D6 SQLite library
 
-- **Status:** Accepted. Part P10 records the final choice.
-- **Decision:** The project uses the built-in `node:sqlite` module if the Node.js LTS version marks it as stable enough. If not, the project uses `better-sqlite3` with a prebuilt Windows binary.
-- **Reason:** Both options install without Visual Studio Build Tools. `node:sqlite` adds no dependency.
-- **Options not chosen:** Any library that needs a native build.
+- **Status:** Accepted. Part P10 resolved this decision on 2026-10-26.
+- **Decision:** The project uses the built-in `node:sqlite` module. The module needs no install and no native build. The Node.js version in use is 24.21.0. It loads `node:sqlite` without a flag. Its SQLite build is 3.53.4. It has the FTS5 extension that part P11 needs. The store code uses only a small part of the API.
+- **Reason:** The project asked for a library that installs on Windows without Visual Studio Build Tools. The built-in module needs nothing. It also removes a dependency. The `engines` field of `package.json` now asks for Node.js 24 or newer, because the module needs a newer Node.js version without a flag.
+- **Limit:** `node:sqlite` has release candidate status in Node.js. The Node.js docs say "Stability: 1.2 - Release candidate" since Node.js 24.15.0. The API can change in a later release. The store code sits behind a small class. A later version can add a `better-sqlite3` implementation without a change in the other folders.
+- **Options not chosen:** `better-sqlite3`. Its API is stable, but it needs a prebuilt binary for each Node.js version. A missing prebuilt binary needs a native build.
 
 ## D7 Platform layer
 

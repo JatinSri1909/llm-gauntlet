@@ -46,7 +46,7 @@ describe.skipIf(process.platform !== 'win32')('Windows data paths', () => {
   it('rejects a name with a path separator', () => {
     const paths = createWindowsDataPaths({ env: { LOCALAPPDATA: 'C:\\Data' } });
 
-    expect(() => paths.sessionFile('..\\evil')).toThrowError(FileError);
-    expect(() => paths.sessionFile('../evil')).toThrowError(FileError);
+    expect(() => paths.sessionFile('..\\evil')).toThrow(FileError);
+    expect(() => paths.sessionFile('../evil')).toThrow(FileError);
   });
 });
