@@ -1,3 +1,5 @@
+import type { Page } from 'playwright';
+
 import { AppError } from '../core/errors.js';
 
 import type {
@@ -7,6 +9,7 @@ import type {
   BrowserLaunchOptions,
   BrowserLauncher,
   BrowserMode,
+  BrowserPage,
   BrowserPurpose,
   BrowserSession,
 } from './types.js';
@@ -74,7 +77,8 @@ export class PlaywrightBrowserDriver implements BrowserDriver {
       }
 
       return {
-        page,
+        page: new PlaywrightBrowserPage(page),
+        storageState: async () => context.storageState(),
         close: async () => {
           try {
             await context.close();
@@ -87,6 +91,63 @@ export class PlaywrightBrowserDriver implements BrowserDriver {
       await browser.close();
       throw error;
     }
+  }
+}
+
+/** Adapt a Playwright page to the page interface that the adapters use. */
+export class PlaywrightBrowserPage implements BrowserPage {
+  private readonly page: Page;
+
+  constructor(page: Page) {
+    this.page = page;
+  }
+
+  /** Go to a URL and wait for the page to load. */
+  async goto(url: string): Promise<void> {
+    await this.page.goto(url);
+  }
+
+  /** Wait until an element is visible. */
+  async waitForSelector(selector: string, timeoutMs?: number): Promise<void> {
+    await this.page.waitForSelector(
+      selector,
+      timeoutMs === undefined ? {} : { timeout: timeoutMs },
+    );
+  }
+
+  /** Return the text of the first element that matches the selector. */
+  async textOf(selector: string): Promise<string | undefined> {
+    const locator = this.page.locator(selector).first();
+    if ((await locator.count()) === 0) {
+      return undefined;
+    }
+
+    return (await locator.textContent()) ?? undefined;
+  }
+
+  /** Return true when the element is visible. */
+  async isVisible(selector: string): Promise<boolean> {
+    return this.page.locator(selector).first().isVisible();
+  }
+
+  /** Return the visible text of the page. */
+  async bodyText(): Promise<string> {
+    return this.page.locator('body').innerText();
+  }
+
+  /** Type text into an element. */
+  async fill(selector: string, text: string): Promise<void> {
+    await this.page.locator(selector).fill(text);
+  }
+
+  /** Press a key in an element. */
+  async press(selector: string, key: string): Promise<void> {
+    await this.page.locator(selector).press(key);
+  }
+
+  /** Wait a short time. */
+  async waitForTimeout(milliseconds: number): Promise<void> {
+    await this.page.waitForTimeout(milliseconds);
   }
 }
 

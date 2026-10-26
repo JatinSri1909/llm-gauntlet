@@ -37,25 +37,10 @@ export interface ProviderRequest {
   readonly timeoutMs?: number;
 }
 
+import type { BrowserPage } from '../browser/types.js';
+
 /** The page that an adapter works on. The browser launcher starts the browser. */
-export interface ProviderPage {
-  /** Go to a URL and wait for the page to load. */
-  goto(url: string): Promise<void>;
-  /** Wait until an element is visible. It throws a typed error on a timeout. */
-  waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
-  /** Return the text of the first element that matches the selector. */
-  textOf(selector: string): Promise<string | undefined>;
-  /** Return true when the element is visible. */
-  isVisible(selector: string): Promise<boolean>;
-  /** Return the visible text of the page. */
-  bodyText(): Promise<string>;
-  /** Type text into an element and press a key. */
-  fill(selector: string, text: string): Promise<void>;
-  /** Press a key. */
-  press(selector: string, key: string): Promise<void>;
-  /** Wait a short time. An adapter uses this only after a state change. */
-  waitForTimeout(milliseconds: number): Promise<void>;
-}
+export type ProviderPage = BrowserPage;
 
 /** The contract of a provider adapter. */
 export interface ProviderAdapter {

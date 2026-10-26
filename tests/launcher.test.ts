@@ -1,5 +1,3 @@
-import type { Page } from 'playwright';
-
 import { describe, expect, it } from 'vitest';
 
 import { EdgeFirstBrowserLauncher } from '../src/browser/launcher.js';
@@ -7,6 +5,7 @@ import type {
   BrowserChannel,
   BrowserDriver,
   BrowserDriverOptions,
+  BrowserPage,
   BrowserSession,
 } from '../src/browser/types.js';
 
@@ -25,7 +24,11 @@ class FakeBrowserDriver implements BrowserDriver {
       throw new Error(`The ${options.channel} browser is not available.`);
     }
 
-    return { page: {} as Page, close: async () => undefined };
+    return {
+      page: {} as BrowserPage,
+      storageState: async () => ({}),
+      close: async () => undefined,
+    };
   }
 }
 
