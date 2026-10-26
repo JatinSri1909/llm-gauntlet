@@ -66,7 +66,7 @@ The result of `send` is a `ProviderResult`. It has one of these shapes.
 
 | Kind | Meaning |
 | --- | --- |
-| `answer` | The answer text. The field is `text`. |
+| `answer` | The answer text. The field is `text`. The field `model` is optional. An adapter sets it when the page shows which model answered. |
 | `limitReached` | The page shows a limit message. The field `resetAt` holds the reset time when the page states it. |
 | `captchaRequired` | The page shows a CAPTCHA. |
 | `sessionExpired` | The page shows a sign-in screen. |

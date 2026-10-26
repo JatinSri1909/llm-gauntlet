@@ -8,6 +8,7 @@ export type {
   CaptchaRequired,
   LimitReached,
   ProviderAdapter,
+  ProviderAnswer,
   ProviderPage,
   ProviderRequest,
   ProviderResult,

@@ -199,7 +199,7 @@ describe('/doctor in the prompt', () => {
       configFile: path.join(tempDir, 'config.json'),
       environment,
       launcher: { launch: async () => Promise.reject(new Error('unused')) },
-      config: async () => parseConfig({}),
+      config: async () => parseConfig({ requests: { minDelaySeconds: 0 } }),
       reader,
       output,
       env: {},

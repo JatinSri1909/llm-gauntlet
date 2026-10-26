@@ -37,7 +37,7 @@ export interface ClassifyResult {
   /** The number of API calls made. */
   readonly apiAttempts: number;
   /** The reason of the last API failure, when the local rules were used after a failure. */
-  readonly lastFailure?: ApiFailureReason;
+  readonly lastFailure?: ApiFailureReason | 'keyUnreadable';
 }
 
 /** The name of the saved API key of a provider. */
@@ -60,7 +60,14 @@ export async function classifyTask(options: ClassifyOptions): Promise<ClassifyRe
     return localClass();
   }
 
-  const apiKey = await options.secrets.load(apiKeyName(options.provider));
+  let apiKey: string | undefined;
+  try {
+    apiKey = await options.secrets.load(apiKeyName(options.provider));
+  } catch {
+    // A key that cannot be read must not stop the request. The local rules answer instead.
+    return { ...localClass(), lastFailure: 'keyUnreadable' };
+  }
+
   if (apiKey === undefined) {
     return localClass();
   }

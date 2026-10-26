@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { DifficultyClass } from '../src/core/config-schema.js';
+import { AppError } from '../src/core/errors.js';
 import { answerWithEscalation, nextClass } from '../src/decision/escalation.js';
 import { checkAnswer } from '../src/decision/quality-check.js';
 
 const GOOD = 'Paris is the capital of France.';
-const CUT_OFF = 'The three steps for the setup are: first, we open the file and then',
+const CUT_OFF = 'The three steps are the following, and the list continues (',
   REFUSAL = "I'm sorry, but I can't help with that request.";
 
 /** An ask function that gives each answer in turn and records the classes it was asked at. */
@@ -34,10 +35,13 @@ describe('checkAnswer', () => {
     expect(checkAnswer(CUT_OFF)).toBe('cutOff');
   });
 
-  it('finds a long answer that ends without punctuation', () => {
-    expect(checkAnswer('This answer is long enough to count and it stops without an ending')).toBe(
-      'cutOff',
-    );
+  it('accepts an answer that ends with a number or a URL', () => {
+    expect(checkAnswer('The total is 42')).toBeUndefined();
+    expect(checkAnswer('See the guide at https://example.com/docs')).toBeUndefined();
+  });
+
+  it('does not flag a refusal that says it can not help but', () => {
+    expect(checkAnswer("I can't help but notice the typo in the title.")).toBeUndefined();
   });
 
   it('finds an open code fence', () => {
@@ -137,6 +141,58 @@ describe('answerWithEscalation', () => {
       difficulty: 'hard',
       escalated: false,
       warning: 'refusal',
+    });
+  });
+
+  it('keeps the first answer and makes no second call when the next class would repeat the request', async () => {
+    const { ask, asked } = scripted(CUT_OFF);
+
+    const result = await answerWithEscalation('simple', ask, { canEscalate: () => false });
+
+    expect(asked).toEqual(['simple']);
+    expect(result).toEqual({
+      text: CUT_OFF,
+      difficulty: 'simple',
+      escalated: false,
+      warning: 'cutOff',
+    });
+  });
+
+  it('keeps the first answer when the second call stops with a typed error', async () => {
+    const ask = vi.fn(async (difficulty: DifficultyClass) => {
+      if (difficulty === 'simple') {
+        return CUT_OFF;
+      }
+      throw new AppError('CAPTCHA_REQUIRED', 'A CAPTCHA stopped the request.');
+    });
+
+    const result = await answerWithEscalation('simple', ask);
+
+    expect(result).toEqual({
+      text: CUT_OFF,
+      difficulty: 'simple',
+      escalated: false,
+      warning: 'cutOff',
+      notice: 'A CAPTCHA stopped the request.',
+    });
+  });
+
+  it('keeps the first answer when the second call throws an unexpected error', async () => {
+    const ask = vi.fn(async (difficulty: DifficultyClass) => {
+      if (difficulty === 'simple') {
+        return CUT_OFF;
+      }
+      throw new TypeError('boom');
+    });
+
+    const result = await answerWithEscalation('simple', ask);
+
+    expect(result).toEqual({
+      text: CUT_OFF,
+      difficulty: 'simple',
+      escalated: false,
+      warning: 'cutOff',
+      notice: 'an unexpected error stopped the second request',
     });
   });
 

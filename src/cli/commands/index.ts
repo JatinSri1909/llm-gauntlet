@@ -5,6 +5,7 @@ import { createAskCommand } from './ask.js';
 import { createChatCommand } from './chat.js';
 import { createConfigCommand } from './config.js';
 import { createDoctorCommand } from './doctor.js';
+import { createKeyCommand } from './key.js';
 import { createLoginCommand } from './login.js';
 import { createLogoutCommand } from './logout.js';
 import { createUsageCommand } from './usage.js';
@@ -19,4 +20,5 @@ export function registerCommands(program: Command): void {
   program.addCommand(createUsageCommand());
   program.addCommand(createConfigCommand());
   program.addCommand(createDoctorCommand());
+  program.addCommand(createKeyCommand());
 }

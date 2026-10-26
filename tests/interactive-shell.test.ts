@@ -81,7 +81,7 @@ beforeEach(async () => {
     }),
   };
 
-  config = parseConfig({});
+  config = parseConfig({ requests: { minDelaySeconds: 0 } });
   written = [];
   output = { isTerminal: false, write: (text) => written.push(text) };
   setServicesFactory(async () => servicesFor());

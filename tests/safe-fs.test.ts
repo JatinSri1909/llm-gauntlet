@@ -1,3 +1,7 @@
+import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import { FileError } from '../src/core/errors.js';
@@ -6,6 +10,7 @@ import { SafeFileSystem, toLongPath, type FileSystem } from '../src/platform/win
 class FakeFileSystem implements FileSystem {
   readonly writes: Array<{ path: string; data: Uint8Array | string }> = [];
   readonly renames: Array<{ from: string; to: string }> = [];
+  readonly links: Array<{ from: string; to: string }> = [];
   readonly unlinks: string[] = [];
   mkdirCount = 0;
 
@@ -14,6 +19,7 @@ class FakeFileSystem implements FileSystem {
   private writeError: NodeJS.ErrnoException | undefined;
   private renameError: NodeJS.ErrnoException | undefined;
   private unlinkError: NodeJS.ErrnoException | undefined;
+  private linkError: NodeJS.ErrnoException | undefined;
 
   failWrites(count: number, code: string): void {
     this.remainingWriteFailures = count;
@@ -23,6 +29,10 @@ class FakeFileSystem implements FileSystem {
   failRenames(count: number, code: string): void {
     this.remainingRenameFailures = count;
     this.renameError = errno(code);
+  }
+
+  failLinks(code: string): void {
+    this.linkError = errno(code);
   }
 
   failUnlinks(code: string): void {
@@ -53,6 +63,14 @@ class FakeFileSystem implements FileSystem {
     }
 
     this.renames.push({ from, to });
+  }
+
+  async link(from: string, to: string): Promise<void> {
+    if (this.linkError !== undefined) {
+      throw this.linkError;
+    }
+
+    this.links.push({ from, to });
   }
 
   async unlink(filePath: string): Promise<void> {
@@ -171,6 +189,40 @@ describe.skipIf(process.platform !== 'win32')('SafeFileSystem', () => {
     expect(data.toString()).toBe('data');
   });
 
+  it('makes the target with a link and removes the temporary file', async () => {
+    const fs = new FakeFileSystem();
+    const safeFs = makeSafeFileSystem(fs, async () => {});
+    const target = 'C:\\data\\key.bin';
+
+    const created = await safeFs.writeFileIfAbsent(target, 'hello');
+
+    const temporary = fs.writes[0]?.path ?? '';
+    expect(created).toBe(true);
+    expect(fs.links).toEqual([{ from: temporary, to: target }]);
+    expect(fs.unlinks).toEqual([temporary]);
+  });
+
+  it('returns false when the target already exists', async () => {
+    const fs = new FakeFileSystem();
+    fs.failLinks('EEXIST');
+    const safeFs = makeSafeFileSystem(fs, async () => {});
+
+    const created = await safeFs.writeFileIfAbsent('C:\\data\\key.bin', 'hello');
+
+    expect(created).toBe(false);
+    expect(fs.unlinks).toHaveLength(1);
+  });
+
+  it('gives a FileError when the link fails for another reason', async () => {
+    const fs = new FakeFileSystem();
+    fs.failLinks('ENOENT');
+    const safeFs = makeSafeFileSystem(fs, async () => {});
+
+    await expect(safeFs.writeFileIfAbsent('C:\\data\\key.bin', 'hello')).rejects.toBeInstanceOf(
+      FileError,
+    );
+  });
+
   it('does not fail when a deleted file is missing', async () => {
     const fs = new FakeFileSystem();
     fs.failUnlinks('ENOENT');
@@ -214,5 +266,28 @@ describe.skipIf(process.platform !== 'win32')('toLongPath', () => {
     const filePath = `/tmp/${'a'.repeat(300)}/file.txt`;
 
     expect(toLongPath(filePath, 'linux')).toBe(filePath);
+  });
+});
+
+describe.skipIf(process.platform !== 'win32')('SafeFileSystem on the real file system', () => {
+  it('lets only one of many parallel writers make the file', async () => {
+    const folder = await mkdtemp(path.join(os.tmpdir(), 'llm-gauntlet-absent-'));
+    const target = path.join(folder, 'key.bin');
+    const safeFs = new SafeFileSystem();
+
+    try {
+      const results = await Promise.all(
+        Array.from({ length: 8 }, (_, index) =>
+          safeFs.writeFileIfAbsent(target, `writer-${String(index)}`),
+        ),
+      );
+
+      expect(results.filter((created) => created)).toHaveLength(1);
+      const winner = results.indexOf(true);
+      expect(await readFile(target, 'utf8')).toBe(`writer-${String(winner)}`);
+      expect(await readdir(folder)).toEqual(['key.bin']);
+    } finally {
+      await rm(folder, { recursive: true, force: true });
+    }
   });
 });

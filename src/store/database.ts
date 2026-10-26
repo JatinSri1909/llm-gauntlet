@@ -1,7 +1,7 @@
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 
-import { DatabaseSync, type SQLInputValue, type SQLOutputValue } from 'node:sqlite';
+import type { DatabaseSync, SQLInputValue, SQLOutputValue } from 'node:sqlite';
 
 import { StoreError } from '../core/errors.js';
 
@@ -24,7 +24,10 @@ export class SqliteDatabase {
 
     try {
       mkdirSync(path.dirname(filePath), { recursive: true });
-      this.handle = new DatabaseSync(filePath);
+      // The module loads here and not at import time. A command line entry point can hide the
+      // experimental notice first (see src/cli/quiet-sqlite-warning.ts).
+      const { DatabaseSync: Database } = process.getBuiltinModule('node:sqlite');
+      this.handle = new Database(filePath);
       this.handle.exec('PRAGMA journal_mode = WAL;');
       this.handle.exec('PRAGMA foreign_keys = ON;');
       this.handle.exec('PRAGMA busy_timeout = 5000;');

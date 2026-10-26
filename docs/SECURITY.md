@@ -103,9 +103,9 @@ The application never stores a password. The user signs in in a visible browser.
 | Session state | Only the provider site of that account | Inside each request, as normal browser cookies |
 | Your request text and the selected context | The provider site that the router picks | For each request |
 | The truncated prompt text | The Classifier API (Groq or OpenRouter) | For each classification, unless `localOnly` is on |
-| The answer text, for a score | The Classifier API | Only for `standard` and `hard` tasks, unless `localOnly` is on |
+| The answer text, for a score | The Classifier API | Planned. The application does not send answer text in this version. |
 
-- The first run shows a notice about the Classifier API.
+- `gauntlet key set` shows a notice about the Classifier API before it saves a key. Without a saved key, the application sends nothing to the Classifier API.
 - The option `localOnly` stops all calls to the Classifier API. The application then uses local rules only.
 - The application sends no telemetry. It sends no usage data to the project.
 

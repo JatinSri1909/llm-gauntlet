@@ -17,6 +17,10 @@ const contextSchema = z.strictObject({
   snippets: z.number().int().nonnegative().default(3),
 });
 
+const requestsSchema = z.strictObject({
+  minDelaySeconds: z.number().int().nonnegative().default(10),
+});
+
 const usageSchema = z.strictObject({
   windowHours: z.number().int().positive().default(24),
 });
@@ -36,6 +40,9 @@ export const configSchema = z.strictObject({
   }),
   usage: usageSchema.default({
     windowHours: 24,
+  }),
+  requests: requestsSchema.default({
+    minDelaySeconds: 10,
   }),
   models: z.record(z.string(), z.record(z.enum(DIFFICULTY_CLASSES), z.string().min(1))).default({}),
 });

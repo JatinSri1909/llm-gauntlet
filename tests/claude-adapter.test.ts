@@ -105,7 +105,11 @@ describe('ClaudeAdapter', () => {
 
       const result = await adapter.send(browser.page, { text: 'ping' });
 
-      expect(result).toEqual({ kind: 'answer', text: 'You said: ping. Done.' });
+      expect(result).toEqual({
+        kind: 'answer',
+        text: 'You said: ping. Done.',
+        model: 'Sonnet 5.5 Medium',
+      });
     });
   }, 30_000);
 
@@ -120,7 +124,7 @@ describe('ClaudeAdapter', () => {
 
       const result = await adapter.send(browser.page, { text });
 
-      expect(result).toEqual({ kind: 'answer', text: `You said: ${text}. Done.` });
+      expect(result).toMatchObject({ kind: 'answer', text: `You said: ${text}. Done.` });
     });
   }, 30_000);
 

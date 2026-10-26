@@ -30,6 +30,7 @@ export class WindowsKeyStore implements KeyStore {
   private readonly shellRunner: WindowsShellRunner;
   private readonly helperPath: string;
   private readonly powershellPath: string;
+  private pendingKey: Promise<Buffer> | undefined;
 
   constructor(options: WindowsKeyStoreOptions) {
     this.dataPaths = options.dataPaths;
@@ -50,14 +51,35 @@ export class WindowsKeyStore implements KeyStore {
   }
 
   async getKey(): Promise<Buffer> {
+    // Two calls at the same time share one load or one new key. Otherwise each could make a key.
+    this.pendingKey ??= this.loadOrCreateKey().finally(() => {
+      this.pendingKey = undefined;
+    });
+
+    return Buffer.from(await this.pendingKey);
+  }
+
+  private async loadOrCreateKey(): Promise<Buffer> {
     if (await this.hasKey()) {
       const wrapped = await this.fileSystem.readFile(this.dataPaths.keyFile);
       return this.unprotect(wrapped);
     }
 
     const key = randomBytes(KEY_LENGTH_BYTES);
-    await this.setKey(key);
-    return Buffer.from(key);
+    const wrapped = await this.runHelper('protect', key.toString('base64'));
+
+    // Another process can make the key at the same moment. The first file wins, and both
+    // processes use it. A key that lost is never used.
+    const created = await this.fileSystem.writeFileIfAbsent(
+      this.dataPaths.keyFile,
+      Buffer.from(wrapped, 'utf8'),
+    );
+    if (created) {
+      return key;
+    }
+
+    key.fill(0);
+    return this.unprotect(await this.fileSystem.readFile(this.dataPaths.keyFile));
   }
 
   async setKey(key: Buffer): Promise<void> {

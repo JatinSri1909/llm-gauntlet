@@ -3,7 +3,17 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createProgram } from '../src/cli/index.js';
 
-const commandNames = ['login', 'logout', 'accounts', 'ask', 'chat', 'usage', 'config', 'doctor'];
+const commandNames = [
+  'login',
+  'logout',
+  'accounts',
+  'ask',
+  'chat',
+  'usage',
+  'config',
+  'doctor',
+  'key',
+];
 
 async function runHelp(): Promise<string> {
   const program = createProgram();
@@ -35,7 +45,7 @@ describe('CLI shell', () => {
     vi.restoreAllMocks();
   });
 
-  it('lists all eight commands in the help text', async () => {
+  it('lists all nine commands in the help text', async () => {
     const help = await runHelp();
 
     for (const name of commandNames) {

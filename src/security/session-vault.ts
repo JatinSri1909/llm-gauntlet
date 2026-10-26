@@ -1,9 +1,9 @@
 import { createCipheriv, createDecipheriv, randomBytes, timingSafeEqual } from 'node:crypto';
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
-import path from 'node:path';
+import { access } from 'node:fs/promises';
 
 import { SecurityError } from '../core/errors.js';
 import { KEY_LENGTH_BYTES, type DataPaths, type KeyStore } from '../platform/types.js';
+import { SafeFileSystem } from '../platform/windows/safe-fs.js';
 
 /** Read, write, and delete the encrypted session files. */
 export interface SessionFileStore {
@@ -154,32 +154,17 @@ export class SessionVault {
   }
 }
 
-/** The file store that reads and writes the real files. */
-export function createNodeSessionFileStore(): SessionFileStore {
+/** The file store that reads and writes the real files. It uses the safe file code. */
+export function createNodeSessionFileStore(
+  files: SafeFileSystem = new SafeFileSystem(),
+): SessionFileStore {
   return {
-    read: (filePath) => readFile(filePath),
-    write: async (filePath, data) => {
-      const folder = path.dirname(filePath);
-      await mkdir(folder, { recursive: true });
-      const temporary = path.join(
-        folder,
-        `.${path.basename(filePath)}.${randomBytes(6).toString('hex')}.tmp`,
-      );
-
-      try {
-        await writeFile(temporary, data);
-        await rename(temporary, filePath);
-      } catch (error) {
-        await rm(temporary, { force: true }).catch(() => undefined);
-        throw error;
-      }
-    },
-    delete: async (filePath) => {
-      await rm(filePath, { force: true });
-    },
+    read: (filePath) => files.readFile(filePath),
+    write: (filePath, data) => files.writeFileAtomic(filePath, data),
+    delete: (filePath) => files.deleteFile(filePath),
     exists: async (filePath) => {
       try {
-        await readFile(filePath);
+        await access(filePath);
         return true;
       } catch {
         return false;

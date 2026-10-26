@@ -4,6 +4,7 @@ import type { Config } from '../core/config.js';
 import type { DifficultyClass } from '../core/config-schema.js';
 import { AppError } from '../core/errors.js';
 import { ContextStore } from '../context/context-store.js';
+import { SqliteRequestPacer, type RequestPacer } from './request-pacer.js';
 import {
   ContextSelector,
   estimateTokens,
@@ -13,7 +14,7 @@ import { answerWithEscalation } from '../decision/escalation.js';
 import { classifyTask, type ClassifyResult, type SecretReader } from '../decision/classifier.js';
 import type { QualityProblem } from '../decision/quality-check.js';
 import { Router } from '../decision/router.js';
-import type { ProviderResult } from '../providers/types.js';
+import type { ProviderAdapter, ProviderResult } from '../providers/types.js';
 import type { AdapterRegistry } from '../providers/registry.js';
 import { SecretStore } from '../security/secret-store.js';
 import type { SessionVault } from '../security/session-vault.js';
@@ -50,6 +51,8 @@ export interface RunRequestOptions {
    * that already has messages. Without it, the request text goes alone.
    */
   readonly budget?: ContextBudget;
+  /** Keeps one request at a time for each account and waits between requests. */
+  readonly pacer?: RequestPacer;
 }
 
 /** The result of one request. */
@@ -64,16 +67,21 @@ export interface RunRequestResult {
   readonly model: string;
   readonly warning?: QualityProblem;
   readonly skipped: readonly SkippedAccount[];
+  /** Messages for the user that do not stop the answer, such as a session that could not be saved. */
+  readonly notices: readonly string[];
 }
 
 interface Attempt {
   readonly text: string;
   readonly account: Account;
+  /** The model that the router picked. The escalation compares it. */
+  readonly requestedModel: string;
+  /** The model that answered. It is the picked model when the page does not say. */
   readonly model: string;
 }
 
 type SendOutcome =
-  | { readonly kind: 'answer'; readonly text: string }
+  | { readonly kind: 'answer'; readonly text: string; readonly model: string }
   | { readonly kind: 'skipped'; readonly reason: string };
 
 /**
@@ -102,20 +110,37 @@ export async function runRequest(options: RunRequestOptions): Promise<RunRequest
 
   const excluded = new Set<number>();
   const skipped: SkippedAccount[] = [];
+  const notices: string[] = [];
   const attempts = new Map<DifficultyClass, Attempt>();
   const promptFor = contextPrompter(options);
+
+  // A second call is only worth its quota when it uses another model. The same model on another
+  // account gives the same quality, so the first answer stays.
+  const differsFromFirst = (difficulty: DifficultyClass): boolean => {
+    const first = attempts.get(classification.class);
+    if (first === undefined) {
+      return true;
+    }
+
+    try {
+      return router.route(difficulty, excluded).model !== first.requestedModel;
+    } catch {
+      return false;
+    }
+  };
 
   const askAt = async (difficulty: DifficultyClass): Promise<string> => {
     const prompt = promptFor(difficulty);
     for (;;) {
       const choice = router.route(difficulty, excluded);
-      const outcome = await sendToAccount(options, choice.account, choice.model, prompt);
+      const outcome = await sendToAccount(options, choice.account, choice.model, prompt, notices);
 
       if (outcome.kind === 'answer') {
         attempts.set(difficulty, {
           text: outcome.text,
           account: choice.account,
-          model: choice.model,
+          requestedModel: choice.model,
+          model: outcome.model,
         });
         return outcome.text;
       }
@@ -129,7 +154,12 @@ export async function runRequest(options: RunRequestOptions): Promise<RunRequest
     }
   };
 
-  const answer = await answerWithEscalation(classification.class, askAt);
+  const answer = await answerWithEscalation(classification.class, askAt, {
+    canEscalate: differsFromFirst,
+  });
+  if (answer.notice !== undefined) {
+    notices.push(answer.notice);
+  }
   const chosen = attempts.get(answer.difficulty);
   if (chosen === undefined) {
     throw new AppError('ANSWER_MISSING', 'The answer was not recorded.', {
@@ -159,6 +189,7 @@ export async function runRequest(options: RunRequestOptions): Promise<RunRequest
     model: chosen.model,
     ...(answer.warning === undefined ? {} : { warning: answer.warning }),
     skipped,
+    notices,
   };
 }
 
@@ -183,6 +214,7 @@ async function sendToAccount(
   account: Account,
   model: string,
   text: string,
+  notices: string[],
 ): Promise<SendOutcome> {
   const adapter = options.registry.get(account.provider);
 
@@ -202,24 +234,26 @@ async function sendToAccount(
     return { kind: 'skipped', reason: errorReason(error) };
   }
 
-  const session = await options.launcher.launch({ purpose: 'request', storageState });
-  let result: ProviderResult;
-  try {
-    result = await adapter.send(session.page, { text, model });
-  } catch (error) {
-    return { kind: 'skipped', reason: errorReason(error) };
-  } finally {
-    await session.close();
+  const attempt = (): Promise<ProviderResult | { readonly error: unknown }> =>
+    runInBrowser(options, adapter, account, storageState, text, model, notices);
+  const outcome =
+    options.pacer === undefined ? await attempt() : await options.pacer.run(account.id, attempt);
+
+  if ('error' in outcome) {
+    return { kind: 'skipped', reason: errorReason(outcome.error) };
   }
+  const result = outcome;
 
   switch (result.kind) {
-    case 'answer':
+    case 'answer': {
+      const usedModel = result.model ?? model;
       options.usage.recordRequest(
         account.id,
-        model,
+        usedModel,
         estimateTokens(text) + estimateTokens(result.text),
       );
-      return { kind: 'answer', text: result.text };
+      return { kind: 'answer', text: result.text, model: usedModel };
+    }
     case 'limitReached':
       options.usage.recordLimit(account.id, result.resetAt);
       return { kind: 'skipped', reason: 'limit reached' };
@@ -235,6 +269,50 @@ async function sendToAccount(
   }
 }
 
+/**
+ * Open one browser, send the request, save the refreshed session state, and close the browser.
+ * A failure comes back as an error value, so the pacer always releases the account.
+ */
+async function runInBrowser(
+  options: RunRequestOptions,
+  adapter: ProviderAdapter,
+  account: Account,
+  storageState: BrowserStorageState,
+  text: string,
+  model: string,
+  notices: string[],
+): Promise<ProviderResult | { readonly error: unknown }> {
+  const session = await options.launcher.launch({ purpose: 'request', storageState });
+  try {
+    const result = await adapter.send(session.page, { text, model });
+    // Only a page that still shows a signed-in account has a session worth saving.
+    if (result.kind === 'answer' || result.kind === 'limitReached') {
+      await saveSession(options, account, session.storageState, notices);
+    }
+    return result;
+  } catch (error) {
+    return { error };
+  } finally {
+    await session.close();
+  }
+}
+
+/** Save the session state after a request. The cookies that the site refreshed would be lost otherwise. */
+async function saveSession(
+  options: RunRequestOptions,
+  account: Account,
+  readState: () => Promise<unknown>,
+  notices: string[],
+): Promise<void> {
+  try {
+    await options.vault.save(account.id, await readState());
+  } catch {
+    notices.push(
+      `The session of ${account.provider} ${account.label} could not be saved. Sign in again if the next request fails.`,
+    );
+  }
+}
+
 /** Check that a saved value has the shape of a browser storage state. */
 function isStorageState(value: unknown): value is BrowserStorageState {
   return (
@@ -247,9 +325,9 @@ function isStorageState(value: unknown): value is BrowserStorageState {
   );
 }
 
-/** Return a short reason for an error. A typed error gives its code. */
+/** Return the reason for a skip. A typed error gives its message, which never holds a secret. */
 function errorReason(error: unknown): string {
-  return error instanceof AppError ? error.code : 'error';
+  return error instanceof AppError ? error.message : 'an unexpected error stopped the request';
 }
 
 /** The parts of a request that the commands share. The text and the conversation come later. */
@@ -272,5 +350,9 @@ export function sharedRequestOptions(
     launcher,
     secrets: new SecretStore(services.vault),
     budget: config.context,
+    pacer: new SqliteRequestPacer({
+      database: services.database,
+      minDelayMs: config.requests.minDelaySeconds * 1000,
+    }),
   };
 }

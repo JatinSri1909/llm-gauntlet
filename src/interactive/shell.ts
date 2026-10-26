@@ -149,6 +149,11 @@ function printResult(
   session: ShellSession,
   result: RunRequestResult,
 ): void {
+  for (const notice of result.notices) {
+    output.write(`${style.paint(notice, 'red')}
+`);
+  }
+
   for (const skipped of result.skipped) {
     output.write(
       `${style.paint(`Skipped ${skipped.provider} ${skipped.label}: ${skipped.reason}.`, 'dim')}\n`,

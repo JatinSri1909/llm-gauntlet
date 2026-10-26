@@ -108,20 +108,27 @@ describe('ContextSelector', () => {
     expect(standard.tokens).toBeLessThan(hard.tokens);
   });
 
-  it('rejects a task that is larger than the budget', () => {
+  it('sends a task that is larger than the budget with no history', () => {
     const conversation = store.createConversation();
+    store.addMessage({
+      conversationId: conversation.id,
+      role: 'user',
+      content: 'Earlier question.',
+    });
     const selector = new ContextSelector({
       store,
       budget: { maxTokens: 40, recentMessages: 6, snippets: 3 },
     });
 
-    expect(() =>
-      selector.select({
-        conversationId: conversation.id,
-        task: 'A short task.',
-        class: 'simple',
-      }),
-    ).toThrow(/larger than the context budget/);
+    const selected = selector.select({
+      conversationId: conversation.id,
+      task: 'A short task.',
+      class: 'simple',
+    });
+
+    expect(selected.text).toBe('A short task.');
+    expect(selected.recentMessages).toEqual([]);
+    expect(selected.snippets).toEqual([]);
   });
 });
 

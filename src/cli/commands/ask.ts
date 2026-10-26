@@ -29,6 +29,10 @@ export function createAskCommand(deps: AskCommandDeps = {}): Command {
           text,
         });
 
+        for (const notice of result.notices) {
+          console.error(notice);
+        }
+
         for (const skipped of result.skipped) {
           console.error(`Skipped ${skipped.provider} ${skipped.label}: ${skipped.reason}.`);
         }

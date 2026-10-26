@@ -25,10 +25,11 @@ The application keeps all data on the local machine.
 | --- | --- |
 | Sign in to an account in a visible browser window | Done |
 | Encrypted storage of session state | Done |
-| Task classification in three classes: `simple`, `standard`, `hard` | Done. The classifier API notice is Planned. |
-| Account and model selection by the decision layer | Done |
+| Task classification in three classes: `simple`, `standard`, `hard` | Done. `gauntlet key set` shows the classifier API notice before it saves a key. |
+| Account and model selection by the decision layer | Partly. The Claude adapter uses the account's default model. Model switching is Planned. |
 | Local usage tracking for each account | Done |
-| Local store of conversations, summaries, and usage records | Done |
+| Local store of conversations and usage records | Done |
+| Summaries of long conversations | Planned. No summary is created yet. |
 | Minimum context selection for each request | Done. It applies in interactive mode. |
 | Answer quality check and one-time escalation | Done |
 | Settings from the terminal (`gauntlet config`) | Done |
@@ -41,7 +42,7 @@ The application keeps all data on the local machine.
 | Full-screen interface built with Ink | Planned |
 | Streaming answers | Planned |
 | `gauntlet doctor` self check | Done |
-| Minimum wait between requests to one account | Planned |
+| Minimum wait between requests to one account, and one request at a time per account | Done. The default wait is 10 seconds (`requests.minDelaySeconds`). |
 
 ## Platform support
 
@@ -125,8 +126,11 @@ The setup script does not change any system setting. It does not change the regi
 | --- | --- |
 | `gauntlet` | Start interactive mode. |
 | `gauntlet login <provider>` | Open a visible browser. Sign in. Save the encrypted session state. |
-| `gauntlet logout <provider>` | Delete the saved session state of one account. |
+| `gauntlet logout <provider> [label]` | Delete the saved session state of one account. The account stays, with its usage history. |
 | `gauntlet accounts` | List the accounts and their status. |
+| `gauntlet accounts remove <provider> [label]` | Remove an account, its session state, and its usage history. |
+| `gauntlet key set <provider>` | Save the classifier API key (`groq` or `openrouter`). The key comes from a hidden prompt or from a pipe. |
+| `gauntlet key remove <provider>` | Delete the saved classifier API key. |
 | `gauntlet ask "<text>"` | Send one request. Print the answer. Use it in scripts. |
 | `gauntlet chat` | Start interactive mode. Same as `gauntlet`. |
 | `gauntlet usage` | Show the local usage records. |
@@ -190,7 +194,7 @@ Read this section before you sign in to an account.
 - **Platform terms can forbid automated access.** Many AI platforms do not allow a program to use their web interface. Read the terms of each platform before you use llm-gauntlet with it.
 - **An account can be suspended.** A platform can limit, suspend, or close an account that it thinks is automated. You can lose access to the account and to its history.
 - **You accept this risk.** The first `gauntlet login` shows a notice. You must type a confirmation before the login starts.
-- **llm-gauntlet reduces the risk but does not remove it.** It sends one request at a time to each account. The minimum wait between requests to one account is Planned and is not in this version. It adds no tool to hide the automation.
+- **llm-gauntlet reduces the risk but does not remove it.** It sends one request at a time to each account. It waits a minimum time between requests to one account. The default is 10 seconds. It adds no tool to hide the automation.
 - **llm-gauntlet never bypasses a control.** It does not bypass a CAPTCHA. It does not bypass a rate limit. It does not bypass a usage limit. If a CAPTCHA appears, the application stops. You must solve it in the visible window.
 - **Use accounts that you can afford to lose.** Do not use an account that holds work you cannot replace.
 

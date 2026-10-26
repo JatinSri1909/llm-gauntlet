@@ -203,7 +203,7 @@ async function runPrompt(texts: string[], out: TerminalOutput): Promise<void> {
         throw new AppError('UNUSED', 'unused');
       },
     },
-    config: async () => parseConfig({}),
+    config: async () => parseConfig({ requests: { minDelaySeconds: 0 } }),
     reader,
     output: out,
     env: {},
@@ -232,3 +232,16 @@ function servicesFor(database: SqliteDatabase): Services {
     close: () => undefined,
   };
 }
+
+describe('settings safety', () => {
+  it('rejects prototype names and does not change Object.prototype', async () => {
+    await expect(setSetting(settings(), '__proto__.polluted', '1')).rejects.toThrow(
+      'The setting name is not valid',
+    );
+    await expect(getSetting(settings(), 'constructor.prototype')).rejects.toThrow(
+      'The setting name is not valid',
+    );
+
+    expect(({} as Record<string, unknown>)['polluted']).toBeUndefined();
+  });
+});

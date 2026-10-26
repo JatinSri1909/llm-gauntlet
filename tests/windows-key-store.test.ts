@@ -40,6 +40,16 @@ describe.skipIf(process.platform !== 'win32')('WindowsKeyStore', () => {
     expect(await store.hasKey()).toBe(true);
   });
 
+  it('gives every process the same key when two start at the same moment', async () => {
+    const first = createStore();
+    const second = createStore();
+
+    const [one, two] = await Promise.all([first.store.getKey(), second.store.getKey()]);
+
+    expect(one.equals(two)).toBe(true);
+    expect((await createStore().store.getKey()).equals(one)).toBe(true);
+  });
+
   it('reads the same key from a second store', async () => {
     const first = createStore();
     const key = await first.store.getKey();

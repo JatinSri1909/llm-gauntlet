@@ -8,6 +8,8 @@ export const CLAUDE_SELECTORS = {
   assistantMessage: '[data-testid="assistant-message"]',
   /** The visible answer text inside the assistant row. */
   assistantText: '[data-testid="assistant-message"] .prose',
+  /** The model button. Its text names the model of the chat. */
+  modelButton: '[data-testid="model-selector-dropdown"]',
   /** The assistant row while Claude still writes. The page sets the flag to false at the end. */
   streaming: '[data-testid="assistant-message"][data-is-streaming="true"]',
   /** The notice above the composer. A usage limit message appears here. */

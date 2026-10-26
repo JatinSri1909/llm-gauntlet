@@ -1,8 +1,12 @@
 #!/usr/bin/env node
+import './quiet-sqlite-warning.js';
+
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { Command } from 'commander';
+
+import { AppError } from '../core/errors.js';
 
 import { runChat } from './commands/chat.js';
 import { registerCommands } from './commands/index.js';
@@ -30,5 +34,25 @@ const thisFile = fileURLToPath(import.meta.url);
 const isEntryPoint = entryPath !== undefined && path.resolve(entryPath) === path.resolve(thisFile);
 
 if (isEntryPoint) {
-  await createProgram().parseAsync(process.argv);
+  await runFromTerminal(process.argv);
+}
+
+/**
+ * Run the program from the terminal. A typed error prints its message and hint instead of a stack
+ * trace.
+ */
+async function runFromTerminal(argv: string[]): Promise<void> {
+  try {
+    await createProgram().parseAsync(argv);
+  } catch (error) {
+    if (!(error instanceof AppError)) {
+      throw error;
+    }
+
+    console.error(error.message);
+    if (error.hint !== undefined) {
+      console.error(error.hint);
+    }
+    process.exitCode = 1;
+  }
 }

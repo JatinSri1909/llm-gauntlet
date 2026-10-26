@@ -35,6 +35,7 @@ const DEFAULT_POLL_INTERVAL_MS = 1_000;
 const COMPOSER_TIMEOUT_MS = 30_000;
 const STABLE_READS = 3;
 const MAX_MESSAGE_LENGTH = 200;
+const MAX_MODEL_LENGTH = 60;
 
 /** The Claude adapter. It sends one request and reads the answer. */
 export class ClaudeAdapter implements ProviderAdapter {
@@ -111,7 +112,25 @@ export class ClaudeAdapter implements ProviderAdapter {
       return outcome;
     }
 
-    return { kind: 'answer', text: outcome };
+    const model = await this.readModel(page);
+    return { kind: 'answer', text: outcome, ...(model === undefined ? {} : { model }) };
+  }
+
+  /**
+   * Read the model name that the page shows. It returns undefined when the page shows none, so
+   * the caller keeps the model that it asked for.
+   */
+  private async readModel(page: ProviderPage): Promise<string | undefined> {
+    try {
+      const label = ((await page.textOf(CLAUDE_SELECTORS.modelButton)) ?? '')
+        .replace(/^\s*model:?/i, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      return label === '' || label.length > MAX_MODEL_LENGTH ? undefined : label;
+    } catch {
+      return undefined;
+    }
   }
 
   /** Run one page step. A failure becomes a typed error that names the selector. */

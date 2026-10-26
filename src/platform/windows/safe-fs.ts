@@ -10,6 +10,8 @@ export interface FileSystem {
   readFile(filePath: string): Promise<Buffer>;
   writeFile(filePath: string, data: Uint8Array | string): Promise<void>;
   rename(oldPath: string, newPath: string): Promise<void>;
+  /** Make a hard link. It fails with `EEXIST` when the new path exists. */
+  link(existingPath: string, newPath: string): Promise<void>;
   unlink(filePath: string): Promise<void>;
 }
 
@@ -36,6 +38,7 @@ const NODE_FS: FileSystem = {
     await nodeFs.writeFile(filePath, data);
   },
   rename: (oldPath, newPath) => nodeFs.rename(oldPath, newPath),
+  link: (existingPath, newPath) => nodeFs.link(existingPath, newPath),
   unlink: (filePath) => nodeFs.unlink(filePath),
 };
 
@@ -120,6 +123,38 @@ export class SafeFileSystem {
         hint: 'Close the program that holds the file and try again.',
         cause: error,
       });
+    }
+  }
+
+  /**
+   * Write a file only when it does not exist. It returns true when this call made the file, and
+   * false when the file was already there. Two processes that call it at the same time cannot both
+   * get true. The content appears all at once, so a reader never sees half a file.
+   */
+  async writeFileIfAbsent(filePath: string, data: Uint8Array | string): Promise<boolean> {
+    const target = toLongPath(filePath, this.platform);
+    const folder = path.dirname(target);
+    const temporary = path.join(
+      folder,
+      `.${path.basename(target)}.${randomBytes(6).toString('hex')}.tmp`,
+    );
+
+    try {
+      await this.retry(() => this.fs.mkdir(folder, { recursive: true }));
+      await this.retry(() => this.fs.writeFile(temporary, data));
+      await this.retry(() => this.fs.link(temporary, target));
+      return true;
+    } catch (error) {
+      if (isErrno(error, 'EEXIST')) {
+        return false;
+      }
+
+      throw new FileError(`Cannot write the file: ${filePath}`, {
+        hint: 'Close the program that holds the file and try again.',
+        cause: error,
+      });
+    } finally {
+      await this.fs.unlink(temporary).catch(() => undefined);
     }
   }
 

@@ -20,6 +20,7 @@ import { ContextStore } from '../src/context/context-store.js';
 import { MemoryKeyStore } from '../src/platform/memory/memory-key-store.js';
 import type { DataPaths } from '../src/platform/types.js';
 import { MockAdapter, type MockScript } from '../src/providers/mock/mock-adapter.js';
+import type { ProviderAdapter } from '../src/providers/types.js';
 import { AdapterRegistry } from '../src/providers/registry.js';
 import { SecretStore } from '../src/security/secret-store.js';
 import { SessionVault } from '../src/security/session-vault.js';
@@ -79,7 +80,7 @@ beforeEach(async () => {
     },
   };
 
-  config = parseConfig({});
+  config = parseConfig({ requests: { minDelaySeconds: 0 } });
 });
 
 afterEach(async () => {
@@ -258,3 +259,113 @@ function fakePage(): BrowserPage {
     waitForTimeout: async () => undefined,
   };
 }
+
+describe('session refresh', () => {
+  it('saves the session state that the site refreshed during a request', async () => {
+    const accountId = await addSignedInAccount('alpha', 'student-one');
+    const refreshed = { cookies: [{ name: 'session', value: 'new' }], origins: [] };
+    const refreshingLauncher: BrowserLauncher = {
+      launch: async () => ({
+        page: fakePage(),
+        storageState: async () => refreshed,
+        close: async () => undefined,
+      }),
+    };
+
+    await runRequest(requestOptions('hi', { launcher: refreshingLauncher }));
+
+    expect(await vault.load(accountId)).toEqual(refreshed);
+  });
+
+  it('keeps the saved session when the page shows a sign-in screen', async () => {
+    const accountId = await addSignedInAccount('alpha', 'student-one');
+    await addSignedInAccount('beta', 'student-two');
+    script(alpha, { kind: 'sessionExpired' });
+    const signedOut = {
+      cookies: [],
+      origins: [{ origin: 'https://example.test', localStorage: [] }],
+    };
+    const launcherWithSignedOutState: BrowserLauncher = {
+      launch: async () => ({
+        page: fakePage(),
+        storageState: async () => signedOut,
+        close: async () => undefined,
+      }),
+    };
+
+    await runRequest(requestOptions('hi', { launcher: launcherWithSignedOutState }));
+
+    expect(await vault.load(accountId)).toEqual(SAVED_SESSION);
+  });
+});
+
+describe('escalation cost', () => {
+  it('does not escalate to another account when the model would be the same', async () => {
+    const gamma = new MockAdapter({ name: 'gamma', models: ['gamma-only'] });
+    registry.register(gamma);
+    await addSignedInAccount('gamma', 'one');
+    await addSignedInAccount('gamma', 'two');
+    script(gamma, { kind: 'answer', text: 'Sure,' });
+
+    const result = await runRequest(requestOptions('Explain quantum tunneling in one paragraph.'));
+
+    expect(gamma.requests).toHaveLength(1);
+    expect(result.escalated).toBe(false);
+    expect(result.warning).toBe('cutOff');
+  });
+
+  it('keeps the first answer when the second call fails and no other account is left', async () => {
+    const flaky: ProviderAdapter = {
+      name: 'flaky',
+      loginUrl: 'https://flaky.test/login',
+      models: ['flaky-small', 'flaky-large'],
+      isSignedIn: async () => true,
+      send: async (_page, request) => {
+        if (request.model === 'flaky-large') {
+          throw new TypeError('boom');
+        }
+        return { kind: 'answer', text: 'Sure,' };
+      },
+    };
+    registry.register(flaky);
+    await addSignedInAccount('flaky', 'one');
+
+    const result = await runRequest(requestOptions('Explain quantum tunneling in one paragraph.'));
+
+    expect(result.text).toBe('Sure,');
+    expect(result.escalated).toBe(false);
+    expect(result.notices.join(' ')).toContain('No account is ready');
+    expect(result.skipped).toHaveLength(1);
+  });
+});
+
+describe('model used', () => {
+  it('shows and records the model that the page reports', async () => {
+    const reporting: ProviderAdapter = {
+      name: 'reporting',
+      loginUrl: 'https://reporting.test/login',
+      models: ['reporting-label'],
+      isSignedIn: async () => true,
+      send: async () => ({ kind: 'answer', text: 'A full answer.', model: 'Page Model 5' }),
+    };
+    registry.register(reporting);
+    const accountId = await addSignedInAccount('reporting', 'one');
+
+    const result = await runRequest(requestOptions('hi'));
+
+    expect(result.model).toBe('Page Model 5');
+    const row = database.get<{ model: string }>(
+      'SELECT model FROM usage_records WHERE account_id = ?',
+      [accountId],
+    );
+    expect(row?.model).toBe('Page Model 5');
+  });
+
+  it('keeps the requested model when the page does not say', async () => {
+    await addSignedInAccount('alpha', 'student-one');
+
+    const result = await runRequest(requestOptions('hi'));
+
+    expect(result.model).toBe('alpha-cheap');
+  });
+});

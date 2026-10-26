@@ -1,4 +1,3 @@
-import { AppError } from '../core/errors.js';
 import type { DifficultyClass } from '../core/config-schema.js';
 import type { ContextStore, Message } from './context-store.js';
 
@@ -81,12 +80,9 @@ export class ContextSelector {
     const taskSection = `Task:\n${request.task.trim()}`;
     let used = estimateTokens(systemSection) + estimateTokens(taskSection) + SEPARATOR_TOKENS * 2;
 
+    // A task that is larger than the budget is still sent. Only the context is dropped.
     if (used > limit) {
-      throw new AppError(
-        'CONTEXT_TOO_LARGE',
-        'The system note and the task are larger than the context budget.',
-        { hint: 'Increase context.maxTokens or shorten the task.' },
-      );
+      return taskOnly(request.task);
     }
 
     const latestSummary = this.store.latestSummary(request.conversationId);
@@ -181,9 +177,7 @@ export class ContextSelector {
     const tokens = estimateTokens(text);
 
     if (tokens > limit) {
-      throw new AppError('CONTEXT_TOO_LARGE', 'The context is larger than the budget.', {
-        hint: 'Increase context.maxTokens or shorten the task.',
-      });
+      return taskOnly(request.task);
     }
 
     return {
@@ -231,4 +225,19 @@ function formatMessage(message: Message): string {
     message.role === 'user' ? 'User' : message.role === 'assistant' ? 'Assistant' : 'System';
 
   return `${role}: ${message.content}`;
+}
+
+/** The context of a request whose task alone fills the budget. The task goes out with no history. */
+function taskOnly(task: string): SelectedContext {
+  const text = task.trim();
+
+  return {
+    systemNote: '',
+    summary: undefined,
+    recentMessages: [],
+    snippets: [],
+    task,
+    tokens: estimateTokens(text),
+    text,
+  };
 }

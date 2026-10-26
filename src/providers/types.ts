@@ -24,8 +24,15 @@ export interface SessionExpired {
 /** The signals that an adapter returns instead of an answer. */
 export type ProviderSignal = LimitReached | CaptchaRequired | SessionExpired;
 
+/** An answer. The adapter sets `model` when the page shows which model answered. */
+export interface ProviderAnswer {
+  readonly kind: 'answer';
+  readonly text: string;
+  readonly model?: string;
+}
+
 /** The result of an adapter call. It is an answer or a signal. */
-export type ProviderResult = { readonly kind: 'answer'; readonly text: string } | ProviderSignal;
+export type ProviderResult = ProviderAnswer | ProviderSignal;
 
 /** A request that goes to a provider. */
 export interface ProviderRequest {
@@ -62,6 +69,6 @@ export function isSignal(result: ProviderResult): result is ProviderSignal {
 }
 
 /** Return true when the result is the answer text. */
-export function isAnswer(result: ProviderResult): result is { kind: 'answer'; text: string } {
+export function isAnswer(result: ProviderResult): result is ProviderAnswer {
   return result.kind === 'answer';
 }

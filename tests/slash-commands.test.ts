@@ -81,7 +81,7 @@ beforeEach(async () => {
     },
   };
 
-  config = parseConfig({});
+  config = parseConfig({ requests: { minDelaySeconds: 0 } });
   written = [];
   output = { isTerminal: false, write: (text) => written.push(text) };
   setServicesFactory(async () => servicesFor());
@@ -268,14 +268,14 @@ describe('slash commands', () => {
     expect(reader.reads).toBe(3);
   });
 
-  it('removes an account with /logout', async () => {
+  it('signs out of an account with /logout and keeps the account', async () => {
     const id = await addSignedInAccount('alpha', 'student-one');
 
     await runWith(scriptedReader(...lines('/logout alpha student-one'), EOF));
 
-    expect(accounts.get(id)).toBeUndefined();
+    expect(accounts.get(id)?.state).toBe('needs_login');
     expect(await vault.hasSession(id)).toBe(false);
-    expect(transcript()).toContain('Removed the account: alpha student-one');
+    expect(transcript()).toContain('Signed out of the account: alpha student-one');
   });
 
   it('gives a clear error when a command needs an argument', async () => {

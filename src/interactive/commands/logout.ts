@@ -27,7 +27,7 @@ export const logoutCommand: SlashCommand = {
       context,
       removed === undefined
         ? `No account for the provider: ${provider}`
-        : `Removed the account: ${removed.provider} ${removed.label}`,
+        : `Signed out of the account: ${removed.provider} ${removed.label}`,
     );
     return 'continue';
   },

@@ -15,6 +15,9 @@ export interface SettingsOptions {
 /** A setting name is dots between words. Example: `context.maxTokens`. */
 const KEY_PATTERN = /^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)*$/;
 
+/** Names that would change the object prototype. A setting never uses them. */
+const FORBIDDEN_KEY_PARTS = new Set(['__proto__', 'constructor', 'prototype']);
+
 /** Return every setting, with the defaults, as JSON text. */
 export async function listSettings(options: SettingsOptions): Promise<string> {
   const config = await loadConfig(options.configFile);
@@ -58,7 +61,10 @@ export async function setSetting(
 
 /** Check a setting name and split it into its parts. */
 function parseKey(key: string): string[] {
-  if (!KEY_PATTERN.test(key)) {
+  const segments = key.split('.');
+  const hasForbiddenPart = segments.some((segment) => FORBIDDEN_KEY_PARTS.has(segment));
+
+  if (!KEY_PATTERN.test(key) || hasForbiddenPart) {
     throw new ConfigError(`The setting name is not valid: ${key}`, {
       hint: 'Use names with dots between the words. Example: context.maxTokens.',
     });

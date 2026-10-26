@@ -19,7 +19,7 @@ export function createLogoutCommand(): Command {
           return;
         }
 
-        console.log(`Removed the account: ${removed.provider} ${removed.label}`);
+        console.log(`Signed out of the account: ${removed.provider} ${removed.label}`);
       });
     });
 
