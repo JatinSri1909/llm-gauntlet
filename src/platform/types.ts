@@ -30,7 +30,7 @@ export interface DataPaths {
   /** The file of the wrapped key. */
   readonly keyFile: string;
   /** The encrypted session file of one account. */
-  sessionFile(accountId: string): string;
+  sessionFile(accountId: string | number): string;
   /** A log file with the given name. */
   logFile(name: string): string;
 }

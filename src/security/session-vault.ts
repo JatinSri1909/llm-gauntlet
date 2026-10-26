@@ -46,18 +46,20 @@ export class SessionVault {
   }
 
   /** Return true when an account has a saved session file. */
-  async hasSession(accountId: string): Promise<boolean> {
+  async hasSession(accountId: string | number): Promise<boolean> {
     return this.fileStore.exists(this.dataPaths.sessionFile(accountId));
   }
 
   /** Encrypt the session state and save it in the file of the account. */
-  async save(accountId: string, state: unknown): Promise<void> {
+  async save(accountId: string | number, state: unknown): Promise<void> {
     const plainText = Buffer.from(JSON.stringify(state), 'utf8');
     const key = await this.readKey();
     const nonce = randomBytes(NONCE_LENGTH);
 
     const cipher = createCipheriv('aes-256-gcm', key, nonce, { authTagLength: TAG_LENGTH });
-    cipher.setAAD(Buffer.from(`${MAGIC.toString('ascii')}:${VERSION}:${accountId}`, 'utf8'));
+    cipher.setAAD(
+      Buffer.from(`${MAGIC.toString('ascii')}:${VERSION}:${String(accountId)}`, 'utf8'),
+    );
 
     const cipherText = Buffer.concat([cipher.update(plainText), cipher.final()]);
     const tag = cipher.getAuthTag();
@@ -68,14 +70,14 @@ export class SessionVault {
   }
 
   /** Read and decrypt the session state of an account. */
-  async load(accountId: string): Promise<unknown> {
+  async load(accountId: string | number): Promise<unknown> {
     const filePath = this.dataPaths.sessionFile(accountId);
 
     let fileContent: Buffer;
     try {
       fileContent = await this.fileStore.read(filePath);
     } catch (error) {
-      throw new SecurityError(`No session state for the account: ${accountId}`, {
+      throw new SecurityError(`No session state for the account: ${String(accountId)}`, {
         hint: 'Run "gauntlet login <provider>" to sign in again.',
         cause: error,
       });
@@ -115,7 +117,9 @@ export class SessionVault {
       const decipher = createDecipheriv('aes-256-gcm', key, nonce, {
         authTagLength: TAG_LENGTH,
       });
-      decipher.setAAD(Buffer.from(`${MAGIC.toString('ascii')}:${VERSION}:${accountId}`, 'utf8'));
+      decipher.setAAD(
+        Buffer.from(`${MAGIC.toString('ascii')}:${VERSION}:${String(accountId)}`, 'utf8'),
+      );
       decipher.setAuthTag(tag);
       plainText = Buffer.concat([decipher.update(cipherText), decipher.final()]);
     } catch (error) {
@@ -136,7 +140,7 @@ export class SessionVault {
   }
 
   /** Delete the session file of an account. */
-  async delete(accountId: string): Promise<void> {
+  async delete(accountId: string | number): Promise<void> {
     await this.fileStore.delete(this.dataPaths.sessionFile(accountId));
   }
 

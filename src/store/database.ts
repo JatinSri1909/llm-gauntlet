@@ -36,9 +36,10 @@ export class SqliteDatabase {
     }
   }
 
-  /** Run one statement that returns no rows. */
-  run(sql: string, params: readonly SqlValue[] = []): void {
-    this.handle.prepare(sql).run(...[...params]);
+  /** Run one statement that returns no rows. It returns the number of changed rows. */
+  run(sql: string, params: readonly SqlValue[] = []): number {
+    const result = this.handle.prepare(sql).run(...[...params]);
+    return Number(result.changes);
   }
 
   /** Run one statement and return the first row. */

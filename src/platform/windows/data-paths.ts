@@ -35,7 +35,7 @@ export function createWindowsDataPaths(options: WindowsDataPathsOptions = {}): D
     keysFolder,
     logsFolder,
     keyFile: path.join(keysFolder, 'key.bin'),
-    sessionFile: (accountId) => path.join(sessionsFolder, `${safeFilePart(accountId)}.enc`),
+    sessionFile: (accountId) => path.join(sessionsFolder, `${safeFilePart(String(accountId))}.enc`),
     logFile: (name) => path.join(logsFolder, `${safeFilePart(name)}.log`),
   };
 }
