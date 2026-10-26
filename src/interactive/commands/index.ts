@@ -1,5 +1,6 @@
 import { accountsCommand } from './accounts.js';
 import { configCommand } from './config.js';
+import { doctorCommand } from './doctor.js';
 import { exitCommand } from './exit.js';
 import { helpCommand } from './help.js';
 import { loginCommand } from './login.js';
@@ -24,6 +25,7 @@ export const SLASH_COMMANDS: readonly SlashCommand[] = [
   loginCommand,
   logoutCommand,
   configCommand,
+  doctorCommand,
   usageCommand,
   newCommand,
   resumeCommand,

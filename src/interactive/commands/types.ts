@@ -1,6 +1,7 @@
 import type { AccountManager } from '../../accounts/account-manager.js';
 import type { BrowserLauncher } from '../../browser/types.js';
 import type { ContextStore } from '../../context/context-store.js';
+import type { DoctorEnvironment } from '../../doctor/checks.js';
 import type { AdapterRegistry } from '../../providers/registry.js';
 import type { SessionVault } from '../../security/session-vault.js';
 import type { SqliteDatabase } from '../../store/database.js';
@@ -19,6 +20,8 @@ export interface SlashServices {
   readonly windowHours: number;
   /** The config file of this machine. */
   readonly configFile: string;
+  /** The facts that the doctor checks read. */
+  readonly environment: DoctorEnvironment;
   readonly launcher: BrowserLauncher;
 }
 

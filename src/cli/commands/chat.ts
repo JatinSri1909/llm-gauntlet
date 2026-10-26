@@ -5,6 +5,8 @@ import { createBrowserLauncher } from '../../browser/launcher.js';
 import type { BrowserLauncher } from '../../browser/types.js';
 import { loadConfig, type Config } from '../../core/config.js';
 import { ContextStore } from '../../context/context-store.js';
+import { createDoctorEnvironment } from '../../doctor/environment.js';
+import type { DoctorEnvironment } from '../../doctor/checks.js';
 import { createPlatform } from '../../platform/index.js';
 import { UsageTracker } from '../../usage/usage-tracker.js';
 import { SLASH_COMMANDS } from '../../interactive/commands/index.js';
@@ -29,6 +31,8 @@ export interface ChatCommandDeps {
   readonly env?: NodeJS.ProcessEnv;
   /** The config file. The default is the config file of this machine. */
   readonly configFile?: string;
+  /** The facts that the doctor checks read. The default is this machine. */
+  readonly environment?: DoctorEnvironment;
 }
 
 /** Make the chat command. It starts the interactive prompt. */
@@ -59,6 +63,7 @@ export async function runChat(deps: ChatCommandDeps = {}): Promise<void> {
       }),
       windowHours: config.usage.windowHours,
       configFile: deps.configFile ?? createPlatform().dataPaths.configFile,
+      environment: deps.environment ?? createDoctorEnvironment(createPlatform()),
       launcher,
     };
     const run = (reader: LineReader): Promise<void> =>

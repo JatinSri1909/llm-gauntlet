@@ -280,6 +280,15 @@ describe('shell output helpers', () => {
         usage: new UsageTracker({ database, accounts, windowHours: 24 }),
         windowHours: 24,
         configFile: dataPaths.configFile,
+        environment: {
+          nodeVersion: '24.0.0',
+          dataFolder: tempDir,
+          databaseFile: dataPaths.databaseFile,
+          keyStore: { hasKey: async () => true },
+          folderIsWritable: async () => true,
+          findBrowser: async () => undefined,
+          checkDatabase: async () => undefined,
+        },
         launcher,
       },
     });
