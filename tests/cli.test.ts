@@ -11,10 +11,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const cliPath = path.join(repoRoot, 'src', 'cli', 'index.ts');
 const commandNames = ['login', 'logout', 'accounts', 'ask', 'chat', 'usage', 'config', 'doctor'];
 
-const stubCases: Array<[string, string[]]> = [
-  ['config', ['config']],
-  ['doctor', ['doctor']],
-];
+const stubCases: Array<[string, string[]]> = [['doctor', ['doctor']]];
 
 async function runHelp(): Promise<string> {
   const program = createProgram();
@@ -63,11 +60,11 @@ describe('CLI shell', () => {
   });
 
   it('exits with code 0 for a stub command', () => {
-    const output = execFileSync(process.execPath, ['--import', 'tsx', cliPath, 'config'], {
+    const output = execFileSync(process.execPath, ['--import', 'tsx', cliPath, 'doctor'], {
       cwd: repoRoot,
       encoding: 'utf8',
     });
 
-    expect(output).toContain('The config command is Planned.');
+    expect(output).toContain('The doctor command is Planned.');
   });
 });

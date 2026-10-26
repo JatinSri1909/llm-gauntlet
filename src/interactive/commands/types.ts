@@ -17,6 +17,8 @@ export interface SlashServices {
   readonly usage: UsageTracker;
   /** The length of the usage window in hours. */
   readonly windowHours: number;
+  /** The config file of this machine. */
+  readonly configFile: string;
   readonly launcher: BrowserLauncher;
 }
 

@@ -279,6 +279,7 @@ describe('shell output helpers', () => {
         store: new ContextStore(database),
         usage: new UsageTracker({ database, accounts, windowHours: 24 }),
         windowHours: 24,
+        configFile: dataPaths.configFile,
         launcher,
       },
     });

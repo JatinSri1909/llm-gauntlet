@@ -27,6 +27,8 @@ export interface ChatCommandDeps {
   readonly output?: TerminalOutput;
   /** The environment. The default is the process environment. */
   readonly env?: NodeJS.ProcessEnv;
+  /** The config file. The default is the config file of this machine. */
+  readonly configFile?: string;
 }
 
 /** Make the chat command. It starts the interactive prompt. */
@@ -56,6 +58,7 @@ export async function runChat(deps: ChatCommandDeps = {}): Promise<void> {
         windowHours: config.usage.windowHours,
       }),
       windowHours: config.usage.windowHours,
+      configFile: deps.configFile ?? createPlatform().dataPaths.configFile,
       launcher,
     };
     const run = (reader: LineReader): Promise<void> =>
