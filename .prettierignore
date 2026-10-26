@@ -1,0 +1,9 @@
+# Docs follow the rules in CONVENTIONS.md, not the code format.
+*.md
+.github/ISSUE_TEMPLATE/*.yml
+
+# Generated files and dependencies.
+node_modules/
+dist/
+coverage/
+package-lock.json
