@@ -277,11 +277,53 @@ function positiveLimit(limit: number, fallback: number): number {
   return Math.max(1, Math.floor(limit));
 }
 
+const STOP_WORDS = new Set([
+  'a',
+  'about',
+  'an',
+  'and',
+  'are',
+  'as',
+  'at',
+  'be',
+  'by',
+  'for',
+  'from',
+  'how',
+  'i',
+  'in',
+  'is',
+  'it',
+  'me',
+  'more',
+  'my',
+  'of',
+  'on',
+  'or',
+  'tell',
+  'that',
+  'the',
+  'this',
+  'to',
+  'was',
+  'what',
+  'when',
+  'where',
+  'which',
+  'who',
+  'why',
+  'with',
+  'you',
+  'your',
+]);
+
 function toFtsQuery(text: string): string {
   const tokens = text
     .trim()
     .split(/\s+/)
+    .map((token) => token.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ''))
+    .filter((token) => token !== '' && !STOP_WORDS.has(token.toLowerCase()))
     .filter((token) => /[\p{L}\p{N}]/u.test(token));
 
-  return tokens.map((token) => `"${token.replace(/"/g, '""')}"`).join(' ');
+  return [...new Set(tokens)].map((token) => `"${token.replace(/"/g, '""')}"`).join(' OR ');
 }
