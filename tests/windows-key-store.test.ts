@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SecurityError } from '../src/core/errors.js';
 import { createWindowsDataPaths } from '../src/platform/windows/data-paths.js';
 import { WindowsKeyStore } from '../src/platform/windows/key-store.js';
+import type { ShellResult, ShellRunOptions } from '../src/platform/types.js';
 import { WindowsShellRunner } from '../src/platform/windows/shell-runner.js';
 
 let tempDir: string;
@@ -91,23 +92,24 @@ describe.skipIf(process.platform !== 'win32')('WindowsKeyStore', () => {
 describe.skipIf(process.platform !== 'win32')('WindowsKeyStore key handling', () => {
   it('sends the key through stdin and never in the arguments', async () => {
     const dataPaths = createWindowsDataPaths({ env: { LOCALAPPDATA: tempDir } });
-    const realRunner = new WindowsShellRunner();
     const seen: Array<{ program: string; args: readonly string[]; input?: string }> = [];
 
-    const spyRunner = {
-      run: (
+    class SpyShellRunner extends WindowsShellRunner {
+      override run(
         program: string,
         args: readonly string[],
-        options?: { input?: string; timeoutMs?: number },
-      ) => {
+        options: ShellRunOptions = {},
+      ): Promise<ShellResult> {
         seen.push({
           program,
           args,
-          ...(options?.input === undefined ? {} : { input: options.input }),
+          ...(options.input === undefined ? {} : { input: options.input }),
         });
-        return realRunner.run(program, args, options ?? {});
-      },
-    };
+        return super.run(program, args, options);
+      }
+    }
+
+    const spyRunner = new SpyShellRunner();
 
     const store = new WindowsKeyStore({ dataPaths, shellRunner: spyRunner });
     const key = await store.getKey();

@@ -1,5 +1,7 @@
 import { Command } from 'commander';
 
+import { logoutAccount } from '../../accounts/logout.js';
+
 import { withServices } from './services.js';
 
 /** Make the logout command. */
@@ -10,23 +12,14 @@ export function createLogoutCommand(): Command {
     .argument('[label]', 'account label. It is needed when a provider has more than one account.')
     .action(async (provider: string, label: string | undefined) => {
       await withServices(async (services) => {
-        const accounts = services.accounts
-          .list()
-          .filter((account) => account.provider === provider);
+        const removed = await logoutAccount(services, provider, label);
 
-        const account =
-          label === undefined
-            ? accounts[0]
-            : accounts.find((candidate) => candidate.label === label);
-
-        if (account === undefined) {
+        if (removed === undefined) {
           console.log(`No account for the provider: ${provider}`);
           return;
         }
 
-        await services.vault.delete(account.id);
-        services.accounts.remove(account.id);
-        console.log(`Removed the account: ${account.provider} ${account.label}`);
+        console.log(`Removed the account: ${removed.provider} ${removed.label}`);
       });
     });
 

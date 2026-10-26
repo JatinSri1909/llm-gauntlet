@@ -8,39 +8,54 @@ export interface TerminalReader extends LineReader {
   close(): void;
 }
 
-/** Make the reader for the terminal input and output. */
+/**
+ * Make the reader for the terminal input and output. Lines that arrive while the shell is busy
+ * wait in a queue, so typing ahead does not lose text.
+ */
 export function createTerminalReader(
   input: NodeJS.ReadableStream = process.stdin,
   output: NodeJS.WritableStream = process.stdout,
 ): TerminalReader {
   const terminal: Interface = createInterface({ input, output });
+  const queue: LineInput[] = [];
+  let waiting: ((result: LineInput) => void) | undefined;
+  let isClosed = false;
+
+  const deliver = (result: LineInput): void => {
+    if (waiting === undefined) {
+      queue.push(result);
+      return;
+    }
+
+    const resolve = waiting;
+    waiting = undefined;
+    resolve(result);
+  };
+
+  terminal.on('line', (text) => deliver({ kind: 'line', text }));
+  terminal.on('SIGINT', () => deliver({ kind: 'interrupt' }));
+  terminal.on('close', () => {
+    isClosed = true;
+    deliver({ kind: 'eof' });
+  });
 
   return {
-    read: (prompt) => readOne(terminal, prompt),
+    read: (prompt) => {
+      const queued = queue.shift();
+      if (queued !== undefined) {
+        return Promise.resolve(queued);
+      }
+
+      if (isClosed) {
+        return Promise.resolve({ kind: 'eof' });
+      }
+
+      terminal.setPrompt(prompt);
+      terminal.prompt();
+      return new Promise((resolve) => {
+        waiting = resolve;
+      });
+    },
     close: () => terminal.close(),
   };
-}
-
-/** Ask one question. Ctrl+C, Ctrl+D, and a closed input end the question. */
-function readOne(terminal: Interface, prompt: string): Promise<LineInput> {
-  return new Promise((resolve) => {
-    let settled = false;
-    const finish = (result: LineInput): void => {
-      if (!settled) {
-        settled = true;
-        terminal.off('SIGINT', onInterrupt);
-        terminal.off('close', onClose);
-        resolve(result);
-      }
-    };
-    const onInterrupt = (): void => finish({ kind: 'interrupt' });
-    const onClose = (): void => finish({ kind: 'eof' });
-
-    terminal.once('SIGINT', onInterrupt);
-    terminal.once('close', onClose);
-    terminal.question(prompt).then(
-      (text) => finish({ kind: 'line', text }),
-      () => finish({ kind: 'eof' }),
-    );
-  });
 }

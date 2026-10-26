@@ -30,12 +30,12 @@ afterEach(async () => {
 });
 
 function makeIo(answer: string): {
-  write: ReturnType<typeof vi.fn>;
-  ask: ReturnType<typeof vi.fn>;
+  write: ReturnType<typeof vi.fn<(text: string) => void>>;
+  ask: ReturnType<typeof vi.fn<(question: string) => Promise<string>>>;
 } {
   return {
-    write: vi.fn(),
-    ask: vi.fn(async () => answer),
+    write: vi.fn<(text: string) => void>(),
+    ask: vi.fn<(question: string) => Promise<string>>(async () => answer),
   };
 }
 

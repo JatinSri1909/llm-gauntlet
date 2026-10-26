@@ -1,6 +1,7 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { PassThrough } from 'node:stream';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -22,7 +23,9 @@ import {
   startSpinner,
   type TerminalOutput,
 } from '../src/interactive/render.js';
-import { runShell, type LineInput, type LineReader } from '../src/interactive/shell.js';
+import { SLASH_COMMANDS } from '../src/interactive/commands/index.js';
+import { PROMPT, runShell, type LineInput, type LineReader } from '../src/interactive/shell.js';
+import { createTerminalReader } from '../src/interactive/terminal-reader.js';
 import { MemoryKeyStore } from '../src/platform/memory/memory-key-store.js';
 import type { DataPaths } from '../src/platform/types.js';
 import { MockAdapter, type MockScript } from '../src/providers/mock/mock-adapter.js';
@@ -30,6 +33,7 @@ import { AdapterRegistry } from '../src/providers/registry.js';
 import { SessionVault } from '../src/security/session-vault.js';
 import { SqliteDatabase } from '../src/store/database.js';
 import { loadMigrations, runMigrations } from '../src/store/migrate.js';
+import { UsageTracker } from '../src/usage/usage-tracker.js';
 
 const SAVED_SESSION = { cookies: [], origins: [] };
 const EOF: LineInput = { kind: 'eof' };
@@ -220,7 +224,9 @@ describe('interactive prompt', () => {
     await runWith(scriptedReader({ kind: 'line', text: 'hi' }));
 
     // The second newline ends the prompt line when the input runs out.
-    expect(transcript()).toBe('Plain answer.\n\n');
+    expect(transcript()).toBe(
+      'Plain answer.\n[class simple | account student-one | model alpha-cheap]\n\n',
+    );
     expect(transcript()).not.toContain('\u001b');
     expect(transcript()).not.toContain('Thinking');
   });
@@ -264,8 +270,37 @@ describe('shell output helpers', () => {
       send: async () => {
         throw new Error('no request should be sent');
       },
+      commands: SLASH_COMMANDS,
+      services: {
+        database,
+        accounts,
+        vault,
+        registry,
+        store: new ContextStore(database),
+        usage: new UsageTracker({ database, accounts, windowHours: 24 }),
+        windowHours: 24,
+        launcher,
+      },
     });
 
     expect(reader.reads).toBe(1);
+  });
+});
+
+describe('terminal reader', () => {
+  it('keeps lines that arrive while the shell is busy', async () => {
+    const input = new PassThrough();
+    const sink = new PassThrough();
+    const reader = createTerminalReader(input, sink);
+
+    input.write('first\nsecond\n');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(await reader.read(PROMPT)).toEqual({ kind: 'line', text: 'first' });
+    expect(await reader.read(PROMPT)).toEqual({ kind: 'line', text: 'second' });
+
+    input.end();
+    expect(await reader.read(PROMPT)).toEqual({ kind: 'eof' });
+    reader.close();
   });
 });

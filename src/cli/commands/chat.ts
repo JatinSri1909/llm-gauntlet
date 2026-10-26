@@ -4,7 +4,11 @@ import { runRequest, sharedRequestOptions } from '../../app/run-request.js';
 import { createBrowserLauncher } from '../../browser/launcher.js';
 import type { BrowserLauncher } from '../../browser/types.js';
 import { loadConfig, type Config } from '../../core/config.js';
+import { ContextStore } from '../../context/context-store.js';
 import { createPlatform } from '../../platform/index.js';
+import { UsageTracker } from '../../usage/usage-tracker.js';
+import { SLASH_COMMANDS } from '../../interactive/commands/index.js';
+import type { SlashServices } from '../../interactive/commands/types.js';
 import { createTerminalReader } from '../../interactive/terminal-reader.js';
 import { runShell, type LineReader } from '../../interactive/shell.js';
 import type { TerminalOutput } from '../../interactive/render.js';
@@ -40,11 +44,27 @@ export async function runChat(deps: ChatCommandDeps = {}): Promise<void> {
   await withServices(async (services) => {
     const config = await (deps.config ?? readConfig)();
     const launcher = deps.launcher ?? createBrowserLauncher();
+    const slashServices: SlashServices = {
+      database: services.database,
+      accounts: services.accounts,
+      vault: services.vault,
+      registry: services.registry,
+      store: new ContextStore(services.database),
+      usage: new UsageTracker({
+        database: services.database,
+        accounts: services.accounts,
+        windowHours: config.usage.windowHours,
+      }),
+      windowHours: config.usage.windowHours,
+      launcher,
+    };
     const run = (reader: LineReader): Promise<void> =>
       runShell({
         reader,
         output: deps.output ?? createTerminalOutput(),
         env: deps.env ?? process.env,
+        commands: SLASH_COMMANDS,
+        services: slashServices,
         send: (text, conversationId) =>
           runRequest({
             ...sharedRequestOptions(services, config, launcher),
