@@ -1,0 +1,38 @@
+name: Feature request
+description: Suggest a new feature or a change.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check `docs/PLAN.md` first. The feature can already be Planned.
+        Version 1 supports Windows only. Linux and macOS are Planned.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem do you want to solve?
+      description: Describe the problem, not the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What do you propose?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What other options did you think about?
+    validations:
+      required: false
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: The feature does not bypass or hide anything on a provider site. This includes a CAPTCHA, a rate limit, and a usage limit.
+          required: true
+        - label: I read `docs/PLAN.md` and `docs/DECISIONS.md`.
+          required: true

@@ -1,0 +1,68 @@
+name: Bug report
+description: Report a problem in llm-gauntlet.
+title: "fix: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report a security problem here. Read `docs/SECURITY.md`.
+        Do not paste a session file, a key, a cookie, or a token. Remove secrets from logs before you paste them.
+  - type: textarea
+    id: steps
+    attributes:
+      label: What did you do?
+      description: Give the exact steps. Show the PowerShell commands.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened?
+      description: Paste the error message or the output. Remove secrets first.
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 23H2
+    validations:
+      required: true
+  - type: input
+    id: powershell
+    attributes:
+      label: PowerShell version
+      description: Run `$PSVersionTable.PSVersion` in PowerShell.
+      placeholder: "7.4.5"
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node.js version
+      description: Run `node --version` in PowerShell.
+      placeholder: v22.11.0
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of gauntlet doctor
+      description: The `doctor` command is Planned (part P32). Skip this field until it exists.
+      render: text
+    validations:
+      required: false
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I removed all secrets, cookies, tokens, and session files from this report.
+          required: true
