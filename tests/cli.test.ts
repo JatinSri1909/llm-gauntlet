@@ -14,7 +14,6 @@ const commandNames = ['login', 'logout', 'accounts', 'ask', 'chat', 'usage', 'co
 const stubCases: Array<[string, string[]]> = [
   ['ask', ['ask', 'Explain a thread.']],
   ['chat', ['chat']],
-  ['usage', ['usage']],
   ['config', ['config']],
   ['doctor', ['doctor']],
 ];
@@ -74,11 +73,11 @@ describe('CLI shell', () => {
   });
 
   it('exits with code 0 for a stub command', () => {
-    const output = execFileSync(process.execPath, ['--import', 'tsx', cliPath, 'usage'], {
+    const output = execFileSync(process.execPath, ['--import', 'tsx', cliPath, 'config'], {
       cwd: repoRoot,
       encoding: 'utf8',
     });
 
-    expect(output).toContain('The usage command is Planned.');
+    expect(output).toContain('The config command is Planned.');
   });
 });
