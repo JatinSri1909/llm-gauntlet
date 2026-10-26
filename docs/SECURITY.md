@@ -2,7 +2,7 @@
 
 This file explains how llm-gauntlet protects sessions and other data. It also explains how to report a vulnerability.
 
-Status: Planned. The code does not exist yet. This file describes the design for version 1. Every protection below is Planned until the build part for it is done. Read `docs/PLAN.md` for the build order.
+Status: Version 1 is built for Windows. This file describes the protections. A protection marked "Planned" is not built yet. Read `docs/PLAN.md` for the build order.
 
 ## Report a vulnerability
 

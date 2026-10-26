@@ -2,7 +2,7 @@
 
 llm-gauntlet is an open source terminal application for Windows. It connects the free accounts of one user on many AI platforms. The accounts work as one pool. A decision layer picks the right account and the right model for each task.
 
-> **Status:** Planning is complete. The code does not exist yet. Every feature in this file is marked "Planned" until the build part for that feature is done. Read `docs/PLAN.md` for the build order.
+> **Status:** Version 1 is built for Windows. A feature marked "Planned" is not built yet. Read `docs/PLAN.md` for the build order.
 
 ## Purpose
 
@@ -21,34 +21,34 @@ The application keeps all data on the local machine.
 
 ## Features
 
-All features are Planned.
-
 | Feature | Status |
 | --- | --- |
-| Sign in to an account in a visible browser window | Planned |
-| Encrypted storage of session state | Planned |
-| Task classification in three classes: `simple`, `standard`, `hard` | Planned |
-| Account and model selection by the decision layer | Planned |
-| Local usage tracking for each account | Planned |
-| Local store of conversations, summaries, and usage records | Planned |
-| Minimum context selection for each request | Planned |
-| Answer quality check and one-time escalation | Planned |
-| Claude adapter | Built in part P20. The manual check with a real account is Pending. |
+| Sign in to an account in a visible browser window | Done |
+| Encrypted storage of session state | Done |
+| Task classification in three classes: `simple`, `standard`, `hard` | Done. The classifier API notice is Planned. |
+| Account and model selection by the decision layer | Done |
+| Local usage tracking for each account | Done |
+| Local store of conversations, summaries, and usage records | Done |
+| Minimum context selection for each request | Done. It applies in interactive mode. |
+| Answer quality check and one-time escalation | Done |
+| Settings from the terminal (`gauntlet config`) | Done |
+| Claude adapter | Built. The manual check with a real account is Pending. |
 | ChatGPT adapter | Planned |
 | Kimi adapter | Planned |
 | DeepSeek adapter | Planned |
 | z.ai adapter | Planned |
-| Interactive mode with a prompt and slash commands | Planned |
+| Interactive mode with a prompt and slash commands | Done |
 | Full-screen interface built with Ink | Planned |
 | Streaming answers | Planned |
-| `gauntlet doctor` self check | Planned |
+| `gauntlet doctor` self check | Done |
+| Minimum wait between requests to one account | Planned |
 
 ## Platform support
 
 | Platform | Status |
 | --- | --- |
-| Windows 10 | Planned for version 1 |
-| Windows 11 | Planned for version 1 |
+| Windows 10 | Built. Not tested on Windows 10. |
+| Windows 11 | Done. Tested on Windows 11. |
 | Linux | Planned |
 | macOS | Planned |
 
@@ -58,7 +58,7 @@ Version 1 supports Windows only. Read `docs/PORTING.md` for the port plan.
 
 - Windows 10 or Windows 11.
 - PowerShell 7 or Windows PowerShell 5.1.
-- Node.js (current LTS version).
+- Node.js 24 or newer.
 - Git.
 - One or more free accounts on a supported AI platform.
 
@@ -66,7 +66,7 @@ If a requirement is missing, `setup.ps1` tells you. It asks before it installs a
 
 ## Quick start
 
-All steps use PowerShell. This section describes the planned setup.
+All steps use PowerShell.
 
 1. Clone the repository.
 
@@ -121,8 +121,6 @@ The setup script does not change any system setting. It does not change the regi
 
 ## Usage
 
-All commands are Planned.
-
 | Command | Purpose |
 | --- | --- |
 | `gauntlet` | Start interactive mode. |
@@ -132,7 +130,7 @@ All commands are Planned.
 | `gauntlet ask "<text>"` | Send one request. Print the answer. Use it in scripts. |
 | `gauntlet chat` | Start interactive mode. Same as `gauntlet`. |
 | `gauntlet usage` | Show the local usage records. |
-| `gauntlet config` | Show or change the settings. |
+| `gauntlet config` | Show the settings. Use `config get <key>` and `config set <key> <value>` to read or change one. |
 | `gauntlet doctor` | Check Node.js, the browser, the data folder, and the key store. |
 
 ### Interactive mode
@@ -141,7 +139,7 @@ Run `gauntlet` with no arguments. A prompt opens. You type a task, and the appli
 
 After each answer, interactive mode prints one status line. The line shows the class, the account label, and the model.
 
-Input that starts with `/` is a slash command. All other input is a task. All slash commands are Planned.
+Input that starts with `/` is a slash command. All other input is a task.
 
 | Slash command | Purpose |
 | --- | --- |
@@ -150,7 +148,7 @@ Input that starts with `/` is a slash command. All other input is a task. All sl
 | `/login <provider>` | Sign in to an account. A visible browser opens. |
 | `/logout <provider>` | Delete the saved session state of one account. |
 | `/usage` | Show the local usage records. |
-| `/config` | Show or change the settings. |
+| `/config` | Show or change the settings. A new value applies the next time you start gauntlet. |
 | `/doctor` | Run the self checks. |
 | `/new` | Start a new conversation. |
 | `/resume` | Continue an earlier conversation from the local store. |
@@ -166,7 +164,7 @@ For each request, the decision layer does these steps:
 1. It classifies the task as `simple`, `standard`, or `hard`.
 2. It reads the usage records. It skips an account that is cooling down.
 3. It picks the cheapest model that fits the class.
-4. It reads the local store. It selects the minimum context.
+4. In interactive mode, it reads the local store and selects the minimum context.
 5. It starts a headless browser. It loads the saved session state.
 6. It opens a new chat on the provider site. It sends the request.
 7. It checks the answer. If the check fails, it tries one class higher, once.
@@ -181,7 +179,7 @@ Read `docs/ARCHITECTURE.md` for more detail.
 - The application encrypts session state with AES-256-GCM.
 - Windows DPAPI protects the encryption key.
 - The application never writes a secret to a log, a prompt, or a commit.
-- The decision layer can use a free API (Groq or OpenRouter) to classify a task. That API receives the truncated text of your prompt. The first run shows a notice about this. To stop it, set the `localOnly` option. The application then uses local rules only.
+- The decision layer can use a free API (Groq or OpenRouter) to classify a task. That API receives the first 2000 characters of your prompt. The first-run notice about this is Planned. To stop all calls to the API, set `localOnly` to `true` with `gauntlet config set localOnly true`. The application then uses local rules only.
 
 Read `docs/SECURITY.md` for more detail.
 
@@ -192,7 +190,7 @@ Read this section before you sign in to an account.
 - **Platform terms can forbid automated access.** Many AI platforms do not allow a program to use their web interface. Read the terms of each platform before you use llm-gauntlet with it.
 - **An account can be suspended.** A platform can limit, suspend, or close an account that it thinks is automated. You can lose access to the account and to its history.
 - **You accept this risk.** The first `gauntlet login` shows a notice. You must type a confirmation before the login starts.
-- **llm-gauntlet reduces the risk but does not remove it.** It sends one request at a time to each account. It waits a minimum time between requests. It adds no tool to hide the automation.
+- **llm-gauntlet reduces the risk but does not remove it.** It sends one request at a time to each account. The minimum wait between requests to one account is Planned and is not in this version. It adds no tool to hide the automation.
 - **llm-gauntlet never bypasses a control.** It does not bypass a CAPTCHA. It does not bypass a rate limit. It does not bypass a usage limit. If a CAPTCHA appears, the application stops. You must solve it in the visible window.
 - **Use accounts that you can afford to lose.** Do not use an account that holds work you cannot replace.
 

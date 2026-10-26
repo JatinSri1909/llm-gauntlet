@@ -2,7 +2,7 @@
 
 This file describes the components of llm-gauntlet and the data flow between them.
 
-Status: Planned. The code does not exist yet. This file describes the design for version 1. Read `docs/PLAN.md` for the build order.
+Status: Version 1 is built for Windows. This file describes the design. A feature marked "Planned" is not built yet. Read `docs/PLAN.md` for the build order.
 
 ## Terms
 

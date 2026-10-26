@@ -2,7 +2,7 @@
 
 This file is the build plan for llm-gauntlet. It lists the goal, the scope, the milestones, the dependencies, and the build parts.
 
-Status: Planned. No part is done yet.
+Status: Build parts P01 to P33 are built, in the order below. Items marked "Planned" are not built.
 
 ## Goal
 

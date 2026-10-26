@@ -2,7 +2,7 @@
 
 This file gives rules to AI coding agents that work on llm-gauntlet. A human can read it too.
 
-Status: Planned. The code does not exist yet. Some commands below work only after the build part that adds them. Read `docs/PLAN.md` for the build order.
+Status: Build parts P01 to P33 are built. Some commands below work only after the build part that adds them. Read `docs/PLAN.md` for the build order.
 
 All commands in this file are PowerShell commands.
 

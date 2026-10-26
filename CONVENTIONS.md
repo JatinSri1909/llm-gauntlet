@@ -2,7 +2,7 @@
 
 This file sets the code style, the naming rules, the folder layout, the test rules, and the commit message format for llm-gauntlet.
 
-Status: Planned. The code does not exist yet. Part P01 adds the tools that enforce many of these rules. Read `docs/PLAN.md` for the build order.
+Status: Build parts P01 to P33 are built. Part P01 adds the tools that enforce many of these rules. Read `docs/PLAN.md` for the build order.
 
 All commands in this file are PowerShell commands.
 

@@ -2,7 +2,7 @@
 
 Thank you for your interest in llm-gauntlet. This file explains how to set up Windows, how the workflow works, how to open a pull request, and how to review one.
 
-Status: Planned. The code does not exist yet. Some commands below work only after the build part that adds them. Read `docs/PLAN.md` for the build order.
+Status: Build parts P01 to P33 are built. Some commands below work only after the build part that adds them. Read `docs/PLAN.md` for the build order.
 
 All commands in this file are PowerShell commands.
 
