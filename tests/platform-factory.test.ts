@@ -27,6 +27,14 @@ describe('createPlatform', () => {
   it('gives an error for an unknown platform', () => {
     expect(() => createPlatform('aix')).toThrow(PlatformError);
   });
+
+  it.skipIf(process.platform !== 'win32')('returns the Windows code on win32', () => {
+    const platform = createPlatform('win32');
+
+    expect(platform.dataPaths.dataFolder).toContain('llm-gauntlet');
+    expect(typeof platform.keyStore.getKey).toBe('function');
+    expect(typeof platform.shellRunner.run).toBe('function');
+  });
 });
 
 describe('MemoryKeyStore', () => {
