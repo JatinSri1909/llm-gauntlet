@@ -43,7 +43,7 @@ describe('EdgeFirstBrowserLauncher', () => {
     expect(driver.calls[0]?.channel).toBe('msedge');
   });
 
-  it('falls back to the Playwright Chromium when Edge fails', async () => {
+  it('falls back to the Patchright Chromium when Edge fails', async () => {
     const driver = new FakeBrowserDriver(['msedge']);
     const launcher = new EdgeFirstBrowserLauncher(driver);
 

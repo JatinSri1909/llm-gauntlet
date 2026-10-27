@@ -208,6 +208,16 @@ describe('interactive prompt', () => {
     expect(reader.reads).toBe(2);
   });
 
+  it('clears the spinner line before it prints a typed error on a terminal', async () => {
+    output = { isTerminal: true, write: (text) => written.push(text) };
+
+    await runWith(scriptedReader({ kind: 'line', text: 'hi' }));
+
+    const clearAt = transcript().lastIndexOf(`\r${' '.repeat('Thinking'.length + 2)}\r`);
+    expect(clearAt).toBeGreaterThanOrEqual(0);
+    expect(transcript().indexOf('No account is ready for a simple task.')).toBeGreaterThan(clearAt);
+  });
+
   it('sends nothing for an empty line', async () => {
     await addSignedInAccount('alpha', 'student-one');
     const reader = scriptedReader({ kind: 'line', text: '   ' });

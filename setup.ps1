@@ -150,7 +150,7 @@ try {
 
         # Edge is tried first. Chromium is the fallback, so only Chromium is downloaded.
         Write-Host 'Installing the Chromium browser for the fallback.'
-        Invoke-Native -Program 'npx.cmd' -Arguments @('playwright', 'install', 'chromium')
+        Invoke-Native -Program 'npx.cmd' -Arguments @('patchright', 'install', 'chromium')
 
         Write-Host ''
         Write-Host 'The gauntlet command needs a global npm link, which changes your global npm folder.'

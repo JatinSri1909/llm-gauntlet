@@ -60,7 +60,7 @@ All items are Planned.
 - **`KeyStore`:** Use the Secret Service of the desktop session. Several desktop environments provide it. Part L6 picks the library or the helper. It must not need a native build (decision D6 and the dependency rules in `docs/PLAN.md`).
 - **No Secret Service case:** Many servers and minimal systems have no Secret Service. Part L6 decides what the application does then. The choices are an error with a clear message, or an encrypted key file that is protected by a passphrase. This needs approval, because it changes the security model. Read `docs/SECURITY.md`.
 - **`DataPaths`:** Follow the XDG rules. Use `XDG_DATA_HOME` if it is set. If not, use a `.local/share` folder inside `os.homedir()`. The folder name is `llm-gauntlet`.
-- **Browser:** Use the Playwright Chromium as the first choice. Use an installed browser only if the maintainer approves it.
+- **Browser:** Use the Patchright Chromium as the first choice. Use an installed browser only if the maintainer approves it.
 - **Setup:** Part L6 decides the setup path. See "Setup scripts".
 - **Terminal:** Test interactive mode in common terminals. Test the case when the output is not a terminal.
 - **CI:** Add a Linux job.
@@ -72,7 +72,7 @@ All items are Planned.
 - **Folder:** `src/platform/macos/`.
 - **`KeyStore`:** Use the macOS Keychain. Part L7 picks the library or the helper. It must not need a native build.
 - **`DataPaths`:** Use the `Library/Application Support` folder inside `os.homedir()`. The folder name is `llm-gauntlet`.
-- **Browser:** Use the Playwright Chromium as the first choice. Use an installed browser only if the maintainer approves it.
+- **Browser:** Use the Patchright Chromium as the first choice. Use an installed browser only if the maintainer approves it.
 - **Setup:** Part L7 decides the setup path. See "Setup scripts".
 - **Terminal:** Test interactive mode in the default terminal and in one other terminal.
 - **Permissions:** Check if the Keychain asks the user for permission. Write the result in this file.

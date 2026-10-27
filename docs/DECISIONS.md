@@ -64,13 +64,13 @@ Status: Planned. The code does not exist yet.
 
 - **Status:** Accepted.
 - **Decision:** The project uses TypeScript on the current Node.js LTS version.
-- **Reason:** Playwright has first-class support for Node.js. The spec already uses the Node.js `path` module.
+- **Reason:** Patchright has first-class support for Node.js. The spec already uses the Node.js `path` module.
 - **Options not chosen:** Python. Its browser tools are good, but the project spec points to Node.js.
 
 ## D4 Setup scripts
 
 - **Status:** Accepted.
-- **Decision:** `setup.ps1` checks for Node.js, npm, and Git. If a tool is missing, it prints the `winget install` command and asks before it runs the command. Then it runs `npm ci`, installs the Playwright browsers, and creates the data folder. `setup.cmd` calls `setup.ps1` and sets the execution policy for that one run only.
+- **Decision:** `setup.ps1` checks for Node.js, npm, and Git. If a tool is missing, it prints the `winget install` command and asks before it runs the command. Then it runs `npm ci`, installs the Patchright browser, and creates the data folder. `setup.cmd` calls `setup.ps1` and sets the execution policy for that one run only.
 - **Reason:** The script never changes the machine without the consent of the user. The script never changes a machine-wide policy.
 - **Options not chosen:** Install every tool without a question.
 
@@ -99,14 +99,14 @@ Status: Planned. The code does not exist yet.
 ## D8 Login method and browser
 
 - **Status:** Accepted.
-- **Decision:** Login opens a visible browser. The user signs in. The browser is Microsoft Edge (`channel: "msedge"`). If Edge is not available, the project uses the Playwright Chromium.
-- **Reason:** Edge is on every Windows 10 and Windows 11 machine. Setup then downloads less.
+- **Decision:** Login opens a visible browser. The user signs in. The browser is Microsoft Edge (`channel: "msedge"`). If Edge is not available, the project uses the Patchright Chromium.
+- **Reason:** Edge is on every Windows 10 and Windows 11 machine. Setup then downloads less. The Patchright Chromium is an undetected build of Chromium. It reduces the chance that a provider detects the automation. The application still never bypasses a CAPTCHA, a rate limit, or a usage limit.
 - **Options not chosen:** Store passwords and sign in with a script. The project never stores passwords.
 
 ## D9 Session state storage
 
 - **Status:** Accepted.
-- **Decision:** The application saves the Playwright `storageState` of each account as one JSON blob. It encrypts the blob with AES-256-GCM. It keeps one encrypted file for each account.
+- **Decision:** The application saves the Patchright `storageState` of each account as one JSON blob. It encrypts the blob with AES-256-GCM. It keeps one encrypted file for each account.
 - **Reason:** One blob is easy to encrypt and easy to delete.
 - **Options not chosen:** Store the state in the database. Encrypt each cookie.
 
@@ -127,7 +127,7 @@ Status: Planned. The code does not exist yet.
 ## D12 Risk notice and request pace
 
 - **Status:** Accepted.
-- **Decision:** The first run of `gauntlet login` shows a risk notice. The user must type a confirmation before the login starts. The application saves the confirmation on the local machine. The application sends one request at a time to each account, with a minimum delay between requests. The project has no stealth or anti-detection tools. The docs say that platform terms can forbid automated access and that an account can be suspended.
+- **Decision:** The first run of `gauntlet login` shows a risk notice. The user must type a confirmation before the login starts. The application saves the confirmation on the local machine. The application sends one request at a time to each account, with a minimum delay between requests. The project should have stealth or anti-detection tools. The docs say that platform terms can forbid automated access and that an account can be suspended.
 - **Reason:** The user makes an informed choice. The code does nothing to hide the automation.
 - **Options not chosen:** No notice. Stealth tools that hide the automation.
 

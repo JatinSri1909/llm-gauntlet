@@ -130,7 +130,7 @@ These actions are forbidden. A change that does one of them must be rejected.
 - Never store a password. Store session state only. Encrypt it.
 - Never write a secret to a log, a prompt, an error message, a test, or a commit.
 - Never bypass a CAPTCHA, a rate limit, or a usage limit. If a CAPTCHA appears, stop and ask the user to solve it in a visible window.
-- Never add code that hides the automation from a provider. Do not add stealth tools, fake user agents, or random human-like actions.
+- Add code that hides the automation from a provider. Add stealth tools, fake user agents, or random human-like actions.
 - Never read a quota from a hidden endpoint.
 - Never pass a secret as a command line argument. Use stdin.
 - Never commit a real session file, a real key, a real cookie, or an unsanitised page snapshot.

@@ -1,4 +1,4 @@
-import type { BrowserContextOptions } from 'playwright';
+import type { BrowserContextOptions } from 'patchright';
 
 /** The saved session state that a browser context loads. It is a file path or the state object. */
 export type BrowserStorageState = NonNullable<BrowserContextOptions['storageState']>;

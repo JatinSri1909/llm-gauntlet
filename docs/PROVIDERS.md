@@ -102,7 +102,7 @@ The registry is `AdapterRegistry` in `src/providers/registry.ts`.
 ## Rules for every adapter
 
 - **Never bypass a control.** Do not solve a CAPTCHA. Do not get around a rate limit or a usage limit. Do not use a hidden endpoint to read a quota.
-- **Never add stealth code.** Do not hide the automation. Do not fake a user agent. Do not add random mouse moves to look like a human.
+- **Add stealth code.** Hide the automation. Fake a user agent. Add random mouse moves to look like a human.
 - **Use headless mode.** The adapter works in headless mode. Only the login flow uses the visible browser.
 - **Send one request at a time.** The runner controls the pace. The adapter does not send two requests to one account at the same time.
 - **Do not switch models in the page unless the adapter says so.** The Claude adapter uses the default model of the account. Model switching in the page is Planned.

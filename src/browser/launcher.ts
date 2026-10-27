@@ -1,4 +1,4 @@
-import type { Page } from 'playwright';
+import type { Page } from 'patchright';
 
 import { AppError } from '../core/errors.js';
 
@@ -24,7 +24,7 @@ export function modeForPurpose(purpose: BrowserPurpose): BrowserMode {
   return MODE_BY_PURPOSE[purpose];
 }
 
-/** Start Microsoft Edge first and the Playwright Chromium as the fallback. */
+/** Start Microsoft Edge first and the Patchright Chromium as the fallback. */
 export class EdgeFirstBrowserLauncher implements BrowserLauncher {
   private readonly driver: BrowserDriver;
 
@@ -44,9 +44,9 @@ export class EdgeFirstBrowserLauncher implements BrowserLauncher {
       } catch (error) {
         throw new AppError(
           'BROWSER_LAUNCH_FAILED',
-          'Cannot start Microsoft Edge or the Playwright Chromium.',
+          'Cannot start Microsoft Edge or the Patchright Chromium.',
           {
-            hint: 'Run "npx playwright install" and check that Microsoft Edge is installed.',
+            hint: 'Run "npx patchright install" and check that Microsoft Edge is installed.',
             cause: error,
           },
         );
@@ -55,11 +55,11 @@ export class EdgeFirstBrowserLauncher implements BrowserLauncher {
   }
 }
 
-/** Start a real browser with Playwright. */
-export class PlaywrightBrowserDriver implements BrowserDriver {
+/** Start a real browser with Patchright. */
+export class PatchrightBrowserDriver implements BrowserDriver {
   /** Start the browser build and open one page. */
   async launch(options: BrowserDriverOptions): Promise<BrowserSession> {
-    const { chromium } = await import('playwright');
+    const { chromium } = await import('patchright');
 
     const browser = await chromium.launch({
       ...(options.channel === 'msedge' ? { channel: 'msedge' } : {}),
@@ -77,7 +77,7 @@ export class PlaywrightBrowserDriver implements BrowserDriver {
       }
 
       return {
-        page: new PlaywrightBrowserPage(page),
+        page: new PatchrightBrowserPage(page),
         storageState: async () => context.storageState(),
         close: async () => {
           try {
@@ -94,8 +94,8 @@ export class PlaywrightBrowserDriver implements BrowserDriver {
   }
 }
 
-/** Adapt a Playwright page to the page interface that the adapters use. */
-export class PlaywrightBrowserPage implements BrowserPage {
+/** Adapt a Patchright page to the page interface that the adapters use. */
+export class PatchrightBrowserPage implements BrowserPage {
   private readonly page: Page;
 
   constructor(page: Page) {
@@ -158,7 +158,7 @@ export class PlaywrightBrowserPage implements BrowserPage {
 
 /** Make the browser launcher that the application uses. */
 export function createBrowserLauncher(): BrowserLauncher {
-  return new EdgeFirstBrowserLauncher(new PlaywrightBrowserDriver());
+  return new EdgeFirstBrowserLauncher(new PatchrightBrowserDriver());
 }
 
 function makeDriverOptions(

@@ -60,7 +60,7 @@ export async function checkBrowser(env: DoctorEnvironment): Promise<CheckResult>
     name: 'Browser',
     status: 'fail',
     message: 'no browser was found',
-    hint: 'Install Microsoft Edge, or run "npx playwright install chromium".',
+    hint: 'Install Microsoft Edge, or run "npx patchright install chromium".',
   };
 }
 

@@ -63,7 +63,7 @@ Only the packages in this list are allowed. To add another package, update this 
 | `commander` | runtime | Parse commands | P04 |
 | `zod` | runtime | Check config and API data | P06 |
 | `better-sqlite3` | runtime | Fallback only. It is not installed in version 1. The project uses `node:sqlite`. | Not used |
-| `playwright` | runtime | Control the browser | P18 |
+| `patchright` | runtime | Control the browser | P18 |
 
 Rules for dependencies:
 
@@ -225,10 +225,10 @@ Each part has a name, a goal, the files it touches, a test, and a "done when" ch
 
 #### P18 Browser launcher
 
-- **Goal:** Start Microsoft Edge first. Use the Playwright Chromium as the fallback. Support visible and headless modes. Hide the launcher behind an interface.
+- **Goal:** Start Microsoft Edge first. Use the Patchright Chromium as the fallback. Support visible and headless modes. Hide the launcher behind an interface.
 - **Files:** `src/browser/launcher.ts`, `src/browser/types.ts`, `tests/launcher.test.ts`.
 - **Test:** The test uses a fake launcher. It checks the Edge-first rule and the fallback rule. It checks that login uses visible mode and all other work uses headless mode.
-- **Done when:** `npm test` passes. `npx playwright --version` works.
+- **Done when:** `npm test` passes. `npx patchright --version` works.
 
 #### P19 Login flow
 

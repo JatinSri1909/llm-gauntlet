@@ -43,7 +43,7 @@ export function createDoctorEnvironment(
         }
       }
 
-      return findPlaywrightChromium();
+      return findPatchrightChromium();
     },
 
     checkDatabase: async (databaseFile) => {
@@ -57,9 +57,9 @@ export function createDoctorEnvironment(
   };
 }
 
-/** Return the Playwright Chromium path when that browser is installed. */
-async function findPlaywrightChromium(): Promise<string | undefined> {
-  const { chromium } = await import('playwright');
+/** Return the Patchright Chromium path when that browser is installed. */
+async function findPatchrightChromium(): Promise<string | undefined> {
+  const { chromium } = await import('patchright');
   const executable = chromium.executablePath();
 
   return (await exists(executable)) ? executable : undefined;

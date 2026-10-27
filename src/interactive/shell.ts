@@ -120,18 +120,22 @@ async function answer(
 ): Promise<RunRequestResult | undefined> {
   const spinner = startSpinner(options.output, options.env, 'Thinking');
 
+  let result: RunRequestResult;
   try {
-    return await options.send(text, conversationId);
+    result = await options.send(text, conversationId);
   } catch (error) {
+    // Clear the spinner line before the error prints, so the error does not follow the spinner.
+    spinner.stop();
     if (!(error instanceof AppError)) {
       throw error;
     }
 
     reportError(options.output, style, error);
     return undefined;
-  } finally {
-    spinner.stop();
   }
+
+  spinner.stop();
+  return result;
 }
 
 /** Print a typed error with its hint. */

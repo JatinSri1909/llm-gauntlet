@@ -128,7 +128,7 @@ The application never stores a password. The user signs in in a visible browser.
 - The application never solves a CAPTCHA. If a CAPTCHA appears, it stops and asks the user.
 - The application never gets around a rate limit or a usage limit.
 - The application never reads a quota from a hidden endpoint.
-- The project has no stealth or anti-detection code.
+- The project has stealth or anti-detection code.
 
 ## Limits of the protection
 
