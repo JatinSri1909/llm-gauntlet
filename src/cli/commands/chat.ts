@@ -99,11 +99,26 @@ export async function runChat(deps: ChatCommandDeps = {}): Promise<void> {
   });
 }
 
-/** Print the title and the first hint when the prompt starts. */
+/** The five rows of each letter in the block title. Every row of a letter has five characters. */
+const TITLE_LETTERS: Readonly<Record<string, readonly string[]>> = {
+  G: ['███  ', '█    ', '█  ██', '█   █', ' ███ '],
+  A: ['███  ', '█   █', '█████', '█   █', '█   █'],
+  U: ['█   █', '█   █', '█   █', '█   █', ' ███ '],
+  N: ['█   █', '██  █', '█ █ █', '█  ██', '█   █'],
+  T: ['█████', '  █  ', '  █  ', '  █  ', '  █  '],
+  L: ['█    ', '█    ', '█    ', '█    ', '█████'],
+  E: ['█████', '█    ', '████ ', '█    ', '█████'],
+};
+
+/** Print the block title in one color, then the first hint, when the prompt starts. */
 function writeBanner(output: TerminalOutput, env: NodeJS.ProcessEnv): void {
   const style = createStyle(output, env);
+  const letters = [...'GAUNTLET'].map((char) => TITLE_LETTERS[char] ?? []);
+  const art = [0, 1, 2, 3, 4]
+    .map((row) => style.paint(letters.map((letter) => letter[row] ?? '').join(' '), 'cyan'))
+    .join('\n');
   output.write(
-    `\n${style.paint('llm-gauntlet', 'bold')}\n` +
+    `\n${art}\n\n` +
       `${style.paint('Type a message to ask. /help lists the commands, /exit leaves.', 'dim')}\n\n`,
   );
 }

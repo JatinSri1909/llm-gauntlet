@@ -62,12 +62,13 @@ describe('EdgeFirstBrowserLauncher', () => {
     expect(driver.calls[0]?.mode).toBe('visible');
   });
 
-  it('uses headless mode for a request', async () => {
+  //TODO: change this to headless mode once we fix the issue with AI website not loading in headless mode.
+  it('uses visible mode for a request', async () => {
     const driver = new FakeBrowserDriver();
     const launcher = new EdgeFirstBrowserLauncher(driver);
 
     await launcher.launch({ purpose: 'request' });
 
-    expect(driver.calls[0]?.mode).toBe('headless');
+    expect(driver.calls[0]?.mode).toBe('visible');
   });
 });
