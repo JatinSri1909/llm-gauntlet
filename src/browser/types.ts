@@ -7,10 +7,14 @@ export type BrowserStorageState = NonNullable<BrowserContextOptions['storageStat
 export interface BrowserPage {
   /** Go to a URL and wait for the page to load. */
   goto(url: string): Promise<void>;
+  /** Return the address that the page shows now. */
+  currentUrl(): string;
   /** Wait until an element is visible. It throws a typed error on a timeout. */
   waitForSelector(selector: string, timeoutMs?: number): Promise<void>;
   /** Return the text of the first element that matches the selector. */
   textOf(selector: string): Promise<string | undefined>;
+  /** Return the text of the last element that matches the selector. */
+  lastTextOf(selector: string): Promise<string | undefined>;
   /** Return true when the element is visible. */
   isVisible(selector: string): Promise<boolean>;
   /** Return the visible text of the page. */

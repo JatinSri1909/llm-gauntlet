@@ -123,6 +123,19 @@ describe('ContextStore', () => {
     expect(store.getConversation(9999)).toBeUndefined();
   });
 
+  it('saves one provider chat for each account and conversation', () => {
+    const conversation = store.createConversation('Chat');
+
+    expect(store.chatLink(1, conversation.id)).toBeUndefined();
+
+    store.saveChatLink(1, conversation.id, 'https://claude.ai/chat/first');
+    store.saveChatLink(2, conversation.id, 'https://claude.ai/chat/second');
+    store.saveChatLink(1, conversation.id, 'https://claude.ai/chat/newer');
+
+    expect(store.chatLink(1, conversation.id)).toBe('https://claude.ai/chat/newer');
+    expect(store.chatLink(2, conversation.id)).toBe('https://claude.ai/chat/second');
+  });
+
   it('rejects an empty message and a missing conversation', () => {
     const conversation = store.createConversation();
 

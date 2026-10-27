@@ -29,6 +29,8 @@ export interface ProviderAnswer {
   readonly kind: 'answer';
   readonly text: string;
   readonly model?: string;
+  /** The address of the provider chat that holds this answer. A later request can reuse it. */
+  readonly chatUrl?: string;
 }
 
 /** The result of an adapter call. It is an answer or a signal. */
@@ -42,6 +44,8 @@ export interface ProviderRequest {
   readonly model?: string;
   /** The time limit in milliseconds. */
   readonly timeoutMs?: number;
+  /** The provider chat to continue. Without it, the adapter starts a new chat. */
+  readonly chatUrl?: string;
 }
 
 import type { BrowserPage } from '../browser/types.js';

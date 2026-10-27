@@ -93,6 +93,22 @@ export class ContextStore {
     return toConversation(row);
   }
 
+  /** Return the provider chat that an account uses for a conversation. It is undefined when none is saved. */
+  chatLink(accountId: number, conversationId: number): string | undefined {
+    const row = this.database.get<{ value: string }>('SELECT value FROM settings WHERE key = ?', [
+      chatLinkKey(accountId, conversationId),
+    ]);
+    return row?.value;
+  }
+
+  /** Save the provider chat that an account uses for a conversation. */
+  saveChatLink(accountId: number, conversationId: number, chatUrl: string): void {
+    this.database.run(
+      'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value',
+      [chatLinkKey(accountId, conversationId), chatUrl],
+    );
+  }
+
   /** Return every conversation, newest first. */
   listConversations(): Conversation[] {
     const rows = this.database.all<ConversationRow>(
@@ -237,6 +253,11 @@ export class ContextStore {
 
     return row?.conversation_id;
   }
+}
+
+/** The settings key of a provider chat. Each account keeps its own chat for each conversation. */
+function chatLinkKey(accountId: number, conversationId: number): string {
+  return `chat.${String(accountId)}.${String(conversationId)}`;
 }
 
 function toConversation(row: ConversationRow): Conversation {

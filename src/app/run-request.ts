@@ -78,10 +78,17 @@ interface Attempt {
   readonly requestedModel: string;
   /** The model that answered. It is the picked model when the page does not say. */
   readonly model: string;
+  /** The provider chat that holds the answer. The conversation saves it for later requests. */
+  readonly chatUrl?: string;
 }
 
 type SendOutcome =
-  | { readonly kind: 'answer'; readonly text: string; readonly model: string }
+  | {
+      readonly kind: 'answer';
+      readonly text: string;
+      readonly model: string;
+      readonly chatUrl?: string;
+    }
   | { readonly kind: 'skipped'; readonly reason: string };
 
 /**
@@ -141,6 +148,7 @@ export async function runRequest(options: RunRequestOptions): Promise<RunRequest
           account: choice.account,
           requestedModel: choice.model,
           model: outcome.model,
+          ...(outcome.chatUrl === undefined ? {} : { chatUrl: outcome.chatUrl }),
         });
         return outcome.text;
       }
@@ -167,7 +175,11 @@ export async function runRequest(options: RunRequestOptions): Promise<RunRequest
     });
   }
 
-  const conversationId = options.conversationId ?? options.store.createConversation().id;
+  const conversationId =
+    options.conversationId ?? options.store.createConversation(titleFor(options.text)).id;
+  if (chosen.chatUrl !== undefined) {
+    options.store.saveChatLink(chosen.account.id, conversationId, chosen.chatUrl);
+  }
   options.store.addMessage({ conversationId, role: 'user', content: options.text });
   if (answer.text.trim() !== '') {
     options.store.addMessage({
@@ -191,6 +203,15 @@ export async function runRequest(options: RunRequestOptions): Promise<RunRequest
     skipped,
     notices,
   };
+}
+
+/** The longest conversation title. A title is the first line of the first request. */
+const TITLE_CHARS = 60;
+
+/** Return the title of a new conversation. It is the first line of the request, cut to a short length. */
+function titleFor(text: string): string {
+  const firstLine = text.trim().split('\n')[0] ?? '';
+  return firstLine.length > TITLE_CHARS ? `${firstLine.slice(0, TITLE_CHARS - 3)}...` : firstLine;
 }
 
 /**
@@ -234,8 +255,15 @@ async function sendToAccount(
     return { kind: 'skipped', reason: errorReason(error) };
   }
 
+  // A conversation that has a saved chat continues that chat. The chat already holds the earlier
+  // messages, so the request goes alone.
+  const chatUrl =
+    options.conversationId === undefined
+      ? undefined
+      : options.store.chatLink(account.id, options.conversationId);
+  const payload = chatUrl === undefined ? text : options.text;
   const attempt = (): Promise<ProviderResult | { readonly error: unknown }> =>
-    runInBrowser(options, adapter, account, storageState, text, model, notices);
+    runInBrowser(options, adapter, account, storageState, payload, model, notices, chatUrl);
   const outcome =
     options.pacer === undefined ? await attempt() : await options.pacer.run(account.id, attempt);
 
@@ -252,7 +280,12 @@ async function sendToAccount(
         usedModel,
         estimateTokens(text) + estimateTokens(result.text),
       );
-      return { kind: 'answer', text: result.text, model: usedModel };
+      return {
+        kind: 'answer',
+        text: result.text,
+        model: usedModel,
+        ...(result.chatUrl === undefined ? {} : { chatUrl: result.chatUrl }),
+      };
     }
     case 'limitReached':
       options.usage.recordLimit(account.id, result.resetAt);
@@ -281,10 +314,15 @@ async function runInBrowser(
   text: string,
   model: string,
   notices: string[],
+  chatUrl: string | undefined,
 ): Promise<ProviderResult | { readonly error: unknown }> {
   const session = await options.launcher.launch({ purpose: 'request', storageState });
   try {
-    const result = await adapter.send(session.page, { text, model });
+    const result = await adapter.send(session.page, {
+      text,
+      model,
+      ...(chatUrl === undefined ? {} : { chatUrl }),
+    });
     // Only a page that still shows a signed-in account has a session worth saving.
     if (result.kind === 'answer' || result.kind === 'limitReached') {
       await saveSession(options, account, session.storageState, notices);

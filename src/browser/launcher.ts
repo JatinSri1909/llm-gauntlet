@@ -16,7 +16,7 @@ import type {
 
 const MODE_BY_PURPOSE: Record<BrowserPurpose, BrowserMode> = {
   login: 'visible',
-  request: 'headless',
+  request: 'visible', // TEMPORARY EXPERIMENT: revert to 'headless' after the test
 };
 
 /** Return the browser mode for one purpose. */
@@ -107,6 +107,11 @@ export class PatchrightBrowserPage implements BrowserPage {
     await this.page.goto(url);
   }
 
+  /** Return the address that the page shows now. */
+  currentUrl(): string {
+    return this.page.url();
+  }
+
   /** Wait until an element is visible. */
   async waitForSelector(selector: string, timeoutMs?: number): Promise<void> {
     await this.page.waitForSelector(
@@ -118,6 +123,16 @@ export class PatchrightBrowserPage implements BrowserPage {
   /** Return the text of the first element that matches the selector. */
   async textOf(selector: string): Promise<string | undefined> {
     const locator = this.page.locator(selector).first();
+    if ((await locator.count()) === 0) {
+      return undefined;
+    }
+
+    return (await locator.textContent()) ?? undefined;
+  }
+
+  /** Return the text of the last element that matches the selector. */
+  async lastTextOf(selector: string): Promise<string | undefined> {
+    const locator = this.page.locator(selector).last();
     if ((await locator.count()) === 0) {
       return undefined;
     }

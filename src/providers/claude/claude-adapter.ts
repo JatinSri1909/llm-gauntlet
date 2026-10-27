@@ -63,14 +63,26 @@ export class ClaudeAdapter implements ProviderAdapter {
   }
 
   /**
-   * Send one request in a new chat and return the answer or a signal.
+   * Send one request and return the answer or a signal.
+   * A request with `chatUrl` continues that chat. When the chat is gone, the request starts a new one.
    * The adapter uses the default model of the account. It does not switch models.
    */
   async send(page: ProviderPage, request: ProviderRequest): Promise<ProviderResult> {
+    const newChat = `${this.baseUrl}/new`;
+    return this.sendFrom(page, request, request.chatUrl ?? newChat, newChat);
+  }
+
+  /** Open the start page, wait for the composer, and send the request. */
+  private async sendFrom(
+    page: ProviderPage,
+    request: ProviderRequest,
+    startUrl: string,
+    newChat: string,
+  ): Promise<ProviderResult> {
     const timeoutMs = request.timeoutMs ?? this.answerTimeoutMs;
 
     try {
-      await page.goto(`${this.baseUrl}/new`);
+      await page.goto(startUrl);
     } catch (error) {
       throw new ProviderError('Cannot open the Claude page.', {
         hint: 'Check the network connection and try again.',
@@ -94,6 +106,11 @@ export class ClaudeAdapter implements ProviderAdapter {
         return signal;
       }
 
+      if (startUrl !== newChat) {
+        // The saved chat is gone or does not load. Start a new chat instead.
+        return this.sendFrom(page, request, newChat, newChat);
+      }
+
       throw missingSelector('composer', CLAUDE_SELECTORS.composer, error);
     }
 
@@ -102,18 +119,29 @@ export class ClaudeAdapter implements ProviderAdapter {
       return ready;
     }
 
+    // A reused chat already shows the earlier answers. The new answer must differ from the last one.
+    const previousAnswer = ((await page.lastTextOf(CLAUDE_SELECTORS.assistantText)) ?? '').trim();
+
     await this.step('composer', CLAUDE_SELECTORS.composer, () =>
       page.fill(CLAUDE_SELECTORS.composer, request.text),
     );
     await this.step('send button', CLAUDE_SELECTORS.send, () => page.click(CLAUDE_SELECTORS.send));
 
-    const outcome = await this.waitForAnswer(page, request.text, timeoutMs);
+    const outcome = await this.waitForAnswer(page, request.text, timeoutMs, previousAnswer);
     if (typeof outcome !== 'string') {
       return outcome;
     }
 
     const model = await this.readModel(page);
-    return { kind: 'answer', text: outcome, ...(model === undefined ? {} : { model }) };
+    // A chat page has an address with /chat/ in it. Only that address can be reused later.
+    const address = page.currentUrl();
+    const chatUrl = address.includes('/chat/') ? address : undefined;
+    return {
+      kind: 'answer',
+      text: outcome,
+      ...(model === undefined ? {} : { model }),
+      ...(chatUrl === undefined ? {} : { chatUrl }),
+    };
   }
 
   /**
@@ -224,19 +252,28 @@ export class ClaudeAdapter implements ProviderAdapter {
     page: ProviderPage,
     requestText: string,
     timeoutMs: number,
+    previousAnswer: string,
   ): Promise<string | ProviderSignal> {
     const deadline = Date.now() + timeoutMs;
     let previous = '';
     let stableReads = 0;
 
     while (Date.now() < deadline) {
-      const text = ((await page.textOf(CLAUDE_SELECTORS.assistantText)) ?? '').trim();
+      const text = ((await page.lastTextOf(CLAUDE_SELECTORS.assistantText)) ?? '').trim();
 
-      if (text === '') {
+      if (text === '' || text === previousAnswer) {
         const signal = await this.findSignal(page, requestText);
         if (signal !== undefined) {
           return signal;
         }
+      }
+
+      // The last answer is still the one from before the request. Wait for the new one.
+      if (text === previousAnswer) {
+        previous = '';
+        stableReads = 0;
+        await page.waitForTimeout(this.pollIntervalMs);
+        continue;
       }
 
       if (await page.isVisible(CLAUDE_SELECTORS.streaming)) {

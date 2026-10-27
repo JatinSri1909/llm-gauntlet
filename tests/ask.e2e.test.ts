@@ -139,6 +139,7 @@ describe('ask command', () => {
     const store = new ContextStore(database);
     const [conversation] = store.listConversations();
     const messages = store.lastMessages(conversation?.id ?? 0, 10);
+    expect(conversation?.title).toBe('hi');
     expect(messages.map((message) => message.role)).toEqual(['user', 'assistant']);
     expect(messages[1]?.accountId).toBe(accountId);
     expect(messages[1]?.class).toBe('simple');
@@ -249,6 +250,8 @@ function servicesFor(): Services {
 function fakePage(): BrowserPage {
   return {
     goto: async () => undefined,
+    currentUrl: () => 'https://claude.ai/new',
+    lastTextOf: async () => undefined,
     waitForSelector: async () => undefined,
     textOf: async () => undefined,
     isVisible: async () => false,

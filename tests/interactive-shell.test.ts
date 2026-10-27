@@ -138,6 +138,8 @@ function servicesFor(): Services {
 function fakePage(): BrowserPage {
   return {
     goto: async () => undefined,
+    currentUrl: () => 'https://claude.ai/new',
+    lastTextOf: async () => undefined,
     waitForSelector: async () => undefined,
     textOf: async () => undefined,
     isVisible: async () => false,
