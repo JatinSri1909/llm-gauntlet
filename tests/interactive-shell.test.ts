@@ -235,9 +235,10 @@ describe('interactive prompt', () => {
 
     await runWith(scriptedReader({ kind: 'line', text: 'hi' }));
 
-    // The second newline ends the prompt line when the input runs out.
+    // The banner comes first. The second newline ends the prompt line when the input runs out.
     expect(transcript()).toBe(
-      'Plain answer.\n[class simple | account student-one | model alpha-cheap]\n\n',
+      '\nllm-gauntlet\nType a message to ask. /help lists the commands, /exit leaves.\n\n' +
+        '\nPlain answer.\n  class simple  account student-one  model alpha-cheap\n\n',
     );
     expect(transcript()).not.toContain('\u001b');
     expect(transcript()).not.toContain('Thinking');

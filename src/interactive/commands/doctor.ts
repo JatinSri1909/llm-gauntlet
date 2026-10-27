@@ -10,7 +10,10 @@ export const doctorCommand: SlashCommand = {
   summary: 'Check Node.js, the browser, the data folder, the key store, and the database.',
   run: async (_args, context) => {
     for (const result of await runChecks(context.services.environment)) {
-      writeLine(context, formatCheck(result));
+      // formatCheck starts with the four-letter label, PASS or FAIL, so that label takes the color.
+      const text = formatCheck(result);
+      const color = result.status === 'pass' ? 'green' : 'red';
+      writeLine(context, `  ${context.style.paint(text.slice(0, 4), color)}${text.slice(4)}`);
     }
     return 'continue';
   },

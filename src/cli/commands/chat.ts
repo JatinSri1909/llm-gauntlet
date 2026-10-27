@@ -14,7 +14,7 @@ import { SLASH_COMMANDS } from '../../interactive/commands/index.js';
 import type { SlashServices } from '../../interactive/commands/types.js';
 import { createTerminalReader } from '../../interactive/terminal-reader.js';
 import { runShell, type LineReader } from '../../interactive/shell.js';
-import { writeNotice, type TerminalOutput } from '../../interactive/render.js';
+import { createStyle, writeNotice, type TerminalOutput } from '../../interactive/render.js';
 
 import { withServices } from './services.js';
 
@@ -67,6 +67,7 @@ export async function runChat(deps: ChatCommandDeps = {}): Promise<void> {
       environment: deps.environment ?? createDoctorEnvironment(createPlatform()),
       launcher,
     };
+    writeBanner(deps.output ?? createTerminalOutput(), deps.env ?? process.env);
     const run = (reader: LineReader): Promise<void> =>
       runShell({
         reader,
@@ -96,6 +97,15 @@ export async function runChat(deps: ChatCommandDeps = {}): Promise<void> {
       terminal.close();
     }
   });
+}
+
+/** Print the title and the first hint when the prompt starts. */
+function writeBanner(output: TerminalOutput, env: NodeJS.ProcessEnv): void {
+  const style = createStyle(output, env);
+  output.write(
+    `\n${style.paint('llm-gauntlet', 'bold')}\n` +
+      `${style.paint('Type a message to ask. /help lists the commands, /exit leaves.', 'dim')}\n\n`,
+  );
 }
 
 /** Read the config file of this machine. */

@@ -5,7 +5,7 @@ import type { RunRequestResult } from '../app/run-request.js';
  * the model. Verbose mode adds the routing detail on a second line.
  */
 export function formatStatusLine(result: RunRequestResult, verbose: boolean): string {
-  const line = `[class ${result.difficulty} | account ${result.account.label} | model ${result.model}]`;
+  const line = `class ${result.difficulty}  account ${result.account.label}  model ${result.model}`;
   if (!verbose) {
     return line;
   }

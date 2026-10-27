@@ -1,4 +1,4 @@
-import { writeLine } from './write.js';
+import { writeLine, writeTable } from './write.js';
 import type { SlashCommand } from './types.js';
 import { STATE_TEXT } from '../../accounts/state-text.js';
 
@@ -11,18 +11,24 @@ export const accountsCommand: SlashCommand = {
     const accounts = context.services.accounts.list();
 
     if (accounts.length === 0) {
-      writeLine(context, 'No accounts. Run /login <provider> to add one.');
+      writeLine(context, '  No accounts yet. Run /login <provider> to add one.');
       return 'continue';
     }
 
-    for (const account of accounts) {
-      const cooling =
-        account.coolingUntil === undefined ? '' : ` until ${account.coolingUntil.toISOString()}`;
-      writeLine(
-        context,
-        `${account.provider} ${account.label} [${STATE_TEXT[account.state]}]${cooling}`,
-      );
-    }
+    writeTable(
+      context,
+      [
+        ['PROVIDER', 'LABEL', 'STATE'],
+        ...accounts.map((account) => [
+          account.provider,
+          account.label,
+          account.coolingUntil === undefined
+            ? STATE_TEXT[account.state]
+            : `${STATE_TEXT[account.state]} until ${account.coolingUntil.toISOString()}`,
+        ]),
+      ],
+      true,
+    );
     return 'continue';
   },
 };

@@ -54,7 +54,7 @@ export async function runShell(options: ShellOptions): Promise<void> {
   };
 
   for (;;) {
-    const input = await options.reader.read(PROMPT);
+    const input = await options.reader.read(style.paint(PROMPT, 'cyan'));
     if (input.kind !== 'line') {
       output.write('\n');
       return;
@@ -142,25 +142,29 @@ async function answer(
 function reportError(output: TerminalOutput, style: Style, error: AppError): void {
   output.write(`${style.paint(error.message, 'red')}\n`);
   if (error.hint !== undefined) {
-    output.write(`${style.paint(error.hint, 'dim')}\n`);
+    output.write(`  ${style.paint(error.hint, 'dim')}\n`);
   }
 }
 
-/** Print the skipped accounts, the answer, the warning, and the status line. */
+/**
+ * Print the notices and the skipped accounts above the answer. Print the warning and the status
+ * line below it. The notices and the status line are indented, so the answer stands out.
+ */
 function printResult(
   output: TerminalOutput,
   style: Style,
   session: ShellSession,
   result: RunRequestResult,
 ): void {
+  output.write('\n');
+
   for (const notice of result.notices) {
-    output.write(`${style.paint(notice, 'red')}
-`);
+    output.write(`  ${style.paint(notice, 'yellow')}\n`);
   }
 
   for (const skipped of result.skipped) {
     output.write(
-      `${style.paint(`Skipped ${skipped.provider} ${skipped.label}: ${skipped.reason}.`, 'dim')}\n`,
+      `  ${style.paint(`skipped ${skipped.provider} ${skipped.label}: ${skipped.reason}`, 'dim')}\n`,
     );
   }
 
@@ -168,9 +172,13 @@ function printResult(
 
   if (result.warning !== undefined) {
     output.write(
-      `${style.paint(`Warning: the answer may be incomplete (${result.warning}).`, 'red')}\n`,
+      `  ${style.paint(`warning: the answer may be incomplete (${result.warning})`, 'yellow')}\n`,
     );
   }
 
-  output.write(`${style.paint(formatStatusLine(result, session.verbose), 'dim')}\n`);
+  const status = formatStatusLine(result, session.verbose)
+    .split('\n')
+    .map((line) => `  ${style.paint(line.trimStart(), 'dim')}`)
+    .join('\n');
+  output.write(`${status}\n`);
 }

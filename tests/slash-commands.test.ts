@@ -244,7 +244,7 @@ describe('slash commands', () => {
 
     await runWith(scriptedReader(...lines('hi')));
 
-    expect(transcript()).toContain('[class simple | account student-one | model alpha-cheap]');
+    expect(transcript()).toContain('class simple  account student-one  model alpha-cheap');
   });
 
   it('shows the accounts with /accounts and their usage with /usage', async () => {
@@ -254,8 +254,8 @@ describe('slash commands', () => {
     written = [];
     await runWith(scriptedReader(...lines('/accounts', '/usage')));
 
-    expect(transcript()).toContain('alpha student-one [ready]');
-    expect(transcript()).toContain('1 requests');
+    expect(transcript()).toMatch(/alpha student-one\s+ready/);
+    expect(transcript()).toMatch(/alpha student-one\s+ready\s+1\s+\d+/);
   });
 
   it('runs the login flow with /login and returns to the prompt', async () => {
@@ -298,7 +298,7 @@ describe('status line', () => {
     } as unknown as RunRequestResult;
 
     expect(formatStatusLine(result, false)).toBe(
-      '[class hard | account student-one | model alpha-big]',
+      'class hard  account student-one  model alpha-big',
     );
     expect(formatStatusLine(result, true)).toContain('first class hard from local rules');
     expect(formatStatusLine(result, true)).toContain('not escalated');

@@ -7,7 +7,7 @@ export interface TerminalOutput {
 }
 
 /** The color names that the shell uses. */
-export type StyleName = 'dim' | 'red' | 'green';
+export type StyleName = 'bold' | 'dim' | 'red' | 'green' | 'yellow' | 'cyan';
 
 /** Add color to text. When colors are off, the text comes back unchanged. */
 export interface Style {
@@ -16,10 +16,36 @@ export interface Style {
 }
 
 const CODES: Record<StyleName, string> = {
+  bold: '1',
   dim: '2',
   red: '31',
   green: '32',
+  yellow: '33',
+  cyan: '36',
 };
+
+/** The gap between two table columns. */
+const COLUMN_GAP = '  ';
+
+/**
+ * Lay out rows in aligned columns. Each column is as wide as its longest cell. The cells are
+ * plain text, so the widths are right even when colors are on later.
+ */
+export function formatTable(rows: readonly (readonly string[])[]): string[] {
+  const widths: number[] = [];
+  for (const row of rows) {
+    row.forEach((cell, index) => {
+      widths[index] = Math.max(widths[index] ?? 0, cell.length);
+    });
+  }
+
+  return rows.map((row) =>
+    row
+      .map((cell, index) => (index === row.length - 1 ? cell : cell.padEnd(widths[index] ?? 0)))
+      .join(COLUMN_GAP)
+      .trimEnd(),
+  );
+}
 
 const SPINNER_FRAMES = ['|', '/', '-', '\\'] as const;
 const SPINNER_INTERVAL_MS = 100;
